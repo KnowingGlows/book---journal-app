@@ -1,6 +1,6 @@
-import { initializeApp, getApps, FirebaseApp } from "firebase/app";
-import { getAuth, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { initializeApp, getApps } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,29 +11,6 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let _app: FirebaseApp | undefined;
-let _auth: Auth | undefined;
-let _db: Firestore | undefined;
-
-function getApp() {
-  if (!_app) {
-    _app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-  }
-  return _app;
-}
-
-export const auth: Auth = new Proxy({} as Auth, {
-  get(_, prop) {
-    if (!_auth) _auth = getAuth(getApp());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (_auth as any)[prop];
-  },
-});
-
-export const db: Firestore = new Proxy({} as Firestore, {
-  get(_, prop) {
-    if (!_db) _db = getFirestore(getApp());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (_db as any)[prop];
-  },
-});
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+export const auth = getAuth(app);
+export const db = getFirestore(app);
