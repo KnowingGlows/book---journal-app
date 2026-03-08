@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 import { FcGoogle } from "react-icons/fc";
 
 export default function LoginPage() {
   const [error, setError] = useState("");
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push("/");
+    }
+  }, [user, loading, router]);
 
   const handleGoogle = async () => {
     setError("");
@@ -18,8 +26,16 @@ export default function LoginPage() {
     }
   };
 
+  if (loading || user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#09090b]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[#09090b] px-4">
       <div className="animate-fade-in w-full max-w-sm">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-white">
@@ -28,10 +44,10 @@ export default function LoginPage() {
           <p className="mt-2 text-sm text-zinc-500">your personal book tracker & journal</p>
         </div>
 
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur">
+        <div className="rounded-2xl border border-zinc-800 bg-[#111113] p-6">
           <button
             onClick={handleGoogle}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-medium text-zinc-200 transition-all hover:border-zinc-600 hover:bg-zinc-800"
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-zinc-700 bg-[#1a1a1e] px-4 py-3 text-sm font-medium text-zinc-200 transition-all hover:border-zinc-600 hover:bg-[#222226]"
           >
             <FcGoogle className="h-5 w-5" />
             Continue with Google

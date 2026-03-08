@@ -73,7 +73,7 @@ export default function Home() {
               { label: "Completed", value: bookCounts.completed, color: "text-emerald-400" },
               { label: "To Read", value: bookCounts.toRead, color: "text-amber-400" },
             ].map((stat) => (
-              <div key={stat.label} className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+              <div key={stat.label} className="rounded-2xl border border-[#1e1e22] bg-[#111113] p-5">
                 <p className="text-xs text-zinc-500">{stat.label}</p>
                 <p className={`mt-1 text-3xl font-bold ${stat.color}`}>{stat.value}</p>
               </div>
@@ -87,7 +87,7 @@ export default function Home() {
               <Link href="/books" className="text-xs text-violet-400 hover:text-violet-300">View all</Link>
             </div>
             {recentBooks.length === 0 ? (
-              <div className="mt-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 py-12 text-zinc-600">
+              <div className="mt-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#1e1e22] py-12 text-zinc-600">
                 <HiOutlineBookOpen className="mb-2 h-8 w-8" />
                 <p className="text-sm">No books yet. Start tracking your reading!</p>
                 <Link href="/books" className="mt-3 text-xs text-violet-400 hover:text-violet-300">Add your first book</Link>
@@ -95,11 +95,11 @@ export default function Home() {
             ) : (
               <div className="mt-4 grid grid-cols-4 gap-4">
                 {recentBooks.map((book) => (
-                  <Link key={book.id} href={`/books/${book.id}`} className="group rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4 transition-all hover:border-zinc-700 hover:bg-zinc-900">
+                  <Link key={book.id} href={`/books/${book.id}`} className="group rounded-2xl border border-[#1e1e22] bg-[#111113] p-4 transition-all hover:border-[#2a2a2e] hover:bg-[#161618]">
                     {book.cover ? (
                       <img src={book.cover} alt={book.title} className="mx-auto h-40 rounded-lg object-cover shadow-lg" />
                     ) : (
-                      <div className="mx-auto flex h-40 w-28 items-center justify-center rounded-lg bg-zinc-800 text-xs text-zinc-500">No cover</div>
+                      <div className="mx-auto flex h-40 w-28 items-center justify-center rounded-lg bg-[#1a1a1e] text-xs text-zinc-500">No cover</div>
                     )}
                     <p className="mt-3 truncate text-sm font-medium text-zinc-200 group-hover:text-white">{book.title}</p>
                     <p className="truncate text-xs text-zinc-500">{book.author}</p>
@@ -116,7 +116,7 @@ export default function Home() {
               <Link href="/journal" className="text-xs text-violet-400 hover:text-violet-300">View all</Link>
             </div>
             {recentJournals.length === 0 ? (
-              <div className="mt-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 py-12 text-zinc-600">
+              <div className="mt-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#1e1e22] py-12 text-zinc-600">
                 <HiOutlinePencilSquare className="mb-2 h-8 w-8" />
                 <p className="text-sm">No journal entries yet. Start writing!</p>
                 <Link href="/journal" className="mt-3 text-xs text-violet-400 hover:text-violet-300">Write your first entry</Link>
@@ -124,7 +124,7 @@ export default function Home() {
             ) : (
               <div className="mt-4 space-y-3">
                 {recentJournals.map((entry) => (
-                  <Link key={entry.id} href={`/journal/${entry.id}`} className="block rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4 transition-all hover:border-zinc-700 hover:bg-zinc-900">
+                  <Link key={entry.id} href={`/journal/${entry.id}`} className="block rounded-2xl border border-[#1e1e22] bg-[#111113] p-4 transition-all hover:border-[#2a2a2e] hover:bg-[#161618]">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium text-zinc-200">{entry.title}</p>
                       <span className="text-xs text-zinc-600">

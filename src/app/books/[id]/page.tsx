@@ -38,9 +38,9 @@ interface BookData {
 }
 
 const statusStyles: Record<string, string> = {
-  reading: "bg-violet-500/10 text-violet-400 border-violet-500/20",
-  "to-read": "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  completed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  reading: "bg-[#2e1065] text-violet-400 border-[#4c1d95]",
+  "to-read": "bg-[#451a03] text-amber-400 border-[#78350f]",
+  completed: "bg-[#022c22] text-emerald-400 border-[#064e3b]",
 };
 
 export default function BookDetailPage() {
@@ -157,7 +157,7 @@ export default function BookDetailPage() {
             {book.cover ? (
               <img src={book.cover} alt={book.title} className="h-56 rounded-xl object-cover shadow-2xl" />
             ) : (
-              <div className="flex h-56 w-36 items-center justify-center rounded-xl bg-zinc-800 text-sm text-zinc-500">No cover</div>
+              <div className="flex h-56 w-36 items-center justify-center rounded-xl bg-[#1a1a1e] text-sm text-zinc-500">No cover</div>
             )}
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-white">{book.title}</h1>
@@ -169,13 +169,13 @@ export default function BookDetailPage() {
                     key={s}
                     onClick={() => changeStatus(s)}
                     className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
-                      book.status === s ? statusStyles[s] : "border-zinc-800 text-zinc-600 hover:border-zinc-700 hover:text-zinc-400"
+                      book.status === s ? statusStyles[s] : "border-[#1e1e22] text-zinc-600 hover:border-[#2a2a2e] hover:text-zinc-400"
                     }`}
                   >
                     {s === "reading" ? "Reading" : s === "to-read" ? "To Read" : "Completed"}
                   </button>
                 ))}
-                <button onClick={deleteBook} className="ml-auto rounded-lg border border-zinc-800 p-1.5 text-zinc-600 transition-all hover:border-red-500/30 hover:text-red-400">
+                <button onClick={deleteBook} className="ml-auto rounded-lg border border-[#1e1e22] p-1.5 text-zinc-600 transition-all hover:border-red-500/30 hover:text-red-400">
                   <HiOutlineTrash className="h-4 w-4" />
                 </button>
               </div>
@@ -188,7 +188,7 @@ export default function BookDetailPage() {
                   { label: "Days Reading", value: daysReading },
                   { label: "Avg Pages/Day", value: avgPagesPerDay },
                 ].map((stat) => (
-                  <div key={stat.label} className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-3 py-2.5">
+                  <div key={stat.label} className="rounded-xl border border-[#1e1e22] bg-[#111113] px-3 py-2.5">
                     <p className="text-[10px] text-zinc-500">{stat.label}</p>
                     <p className="text-lg font-semibold text-zinc-200">{stat.value}</p>
                   </div>
@@ -198,7 +198,7 @@ export default function BookDetailPage() {
               {/* Progress bar */}
               {book.totalPages > 0 && (
                 <div className="mt-4">
-                  <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
+                  <div className="h-2 overflow-hidden rounded-full bg-[#1a1a1e]">
                     <div className="h-full rounded-full bg-gradient-to-r from-violet-600 to-violet-400 transition-all" style={{ width: `${progress}%` }} />
                   </div>
                 </div>
@@ -215,7 +215,7 @@ export default function BookDetailPage() {
 
           {/* Log pages */}
           {book.status === "reading" && (
-            <div className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+            <div className="mt-8 rounded-2xl border border-[#1e1e22] bg-[#111113] p-5">
               <h3 className="text-sm font-semibold text-white">Log Today&apos;s Reading</h3>
               <div className="mt-3 flex gap-3">
                 <input
@@ -223,7 +223,7 @@ export default function BookDetailPage() {
                   placeholder="Pages read today"
                   value={pagesToday}
                   onChange={(e) => setPagesToday(e.target.value)}
-                  className="w-48 rounded-xl border border-zinc-800 bg-zinc-800/30 px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500/50"
+                  className="w-48 rounded-xl border border-[#1e1e22] bg-[#141416] px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-[#6d28d9]"
                   min="1"
                 />
                 <button
@@ -238,11 +238,11 @@ export default function BookDetailPage() {
 
           {/* Reading Log */}
           {book.readingLog && book.readingLog.length > 0 && (
-            <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+            <div className="mt-6 rounded-2xl border border-[#1e1e22] bg-[#111113] p-5">
               <h3 className="text-sm font-semibold text-white">Reading Log</h3>
               <div className="mt-3 max-h-48 space-y-2 overflow-y-auto">
                 {[...book.readingLog].reverse().map((entry, i) => (
-                  <div key={i} className="flex items-center justify-between rounded-lg bg-zinc-800/30 px-3 py-2">
+                  <div key={i} className="flex items-center justify-between rounded-lg bg-[#141416] px-3 py-2">
                     <span className="text-xs text-zinc-400">{format(new Date(entry.date), "MMM d, yyyy 'at' h:mm a")}</span>
                     <span className="text-xs font-medium text-violet-400">+{entry.pages} pages</span>
                   </div>
@@ -252,7 +252,7 @@ export default function BookDetailPage() {
           )}
 
           {/* Notes / Important Passages */}
-          <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+          <div className="mt-6 rounded-2xl border border-[#1e1e22] bg-[#111113] p-5">
             <h3 className="text-sm font-semibold text-white">Notes & Important Passages</h3>
             <div className="mt-3 flex gap-3">
               <input
@@ -260,7 +260,7 @@ export default function BookDetailPage() {
                 placeholder="Page #"
                 value={notePage}
                 onChange={(e) => setNotePage(e.target.value)}
-                className="w-24 rounded-xl border border-zinc-800 bg-zinc-800/30 px-3 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500/50"
+                className="w-24 rounded-xl border border-[#1e1e22] bg-[#141416] px-3 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-[#6d28d9]"
                 min="1"
               />
               <input
@@ -269,7 +269,7 @@ export default function BookDetailPage() {
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addNote()}
-                className="flex-1 rounded-xl border border-zinc-800 bg-zinc-800/30 px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500/50"
+                className="flex-1 rounded-xl border border-[#1e1e22] bg-[#141416] px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-[#6d28d9]"
               />
               <button
                 onClick={addNote}
@@ -281,9 +281,9 @@ export default function BookDetailPage() {
             {book.notes && book.notes.length > 0 && (
               <div className="mt-4 space-y-2">
                 {[...book.notes].reverse().map((note) => (
-                  <div key={note.id} className="rounded-lg bg-zinc-800/30 px-4 py-3">
+                  <div key={note.id} className="rounded-lg bg-[#141416] px-4 py-3">
                     <div className="flex items-center gap-2">
-                      {note.page && <span className="rounded bg-zinc-700 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">p.{note.page}</span>}
+                      {note.page && <span className="rounded bg-[#27272a] px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">p.{note.page}</span>}
                       <span className="text-[10px] text-zinc-600">{format(new Date(note.createdAt), "MMM d, yyyy")}</span>
                     </div>
                     <p className="mt-1 text-sm text-zinc-300">{note.text}</p>
@@ -295,7 +295,7 @@ export default function BookDetailPage() {
 
           {/* Description */}
           {book.description && (
-            <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+            <div className="mt-6 rounded-2xl border border-[#1e1e22] bg-[#111113] p-5">
               <h3 className="text-sm font-semibold text-white">About this Book</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">{book.description}</p>
             </div>

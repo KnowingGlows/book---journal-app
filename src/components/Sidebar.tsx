@@ -16,7 +16,7 @@ export default function Sidebar() {
   const { signOut, user } = useAuth();
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-zinc-800 bg-zinc-950 px-4 py-8">
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-zinc-800 bg-[#0a0a0c] px-4 py-8">
       <div className="mb-10 px-3">
         <h1 className="text-2xl font-bold tracking-tight text-white">
           Shelf<span className="text-violet-400">d</span>
@@ -33,8 +33,8 @@ export default function Sidebar() {
               href={item.href}
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 isActive
-                  ? "bg-violet-500/10 text-violet-400"
-                  : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                  ? "bg-[#2e1065] text-violet-400"
+                  : "text-zinc-400 hover:bg-[#1a1a1e] hover:text-zinc-200"
               }`}
             >
               <item.icon className="h-5 w-5" />
@@ -48,7 +48,7 @@ export default function Sidebar() {
         <p className="mb-2 truncate px-3 text-xs text-zinc-500">{user?.email}</p>
         <button
           onClick={signOut}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-400 transition-all hover:bg-zinc-800/50 hover:text-red-400"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-400 transition-all hover:bg-[#1a1a1e] hover:text-red-400"
         >
           <HiOutlineArrowRightOnRectangle className="h-5 w-5" />
           Sign out

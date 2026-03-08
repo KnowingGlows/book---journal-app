@@ -34,9 +34,9 @@ interface Book {
 }
 
 const statusStyles: Record<string, string> = {
-  reading: "bg-violet-500/10 text-violet-400 border-violet-500/20",
-  "to-read": "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  completed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  reading: "bg-[#2e1065] text-violet-400 border-[#4c1d95]",
+  "to-read": "bg-[#451a03] text-amber-400 border-[#78350f]",
+  completed: "bg-[#022c22] text-emerald-400 border-[#064e3b]",
 };
 
 const statusLabels: Record<string, string> = {
@@ -133,8 +133,8 @@ export default function BooksPage() {
                 onClick={() => setFilter(f)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                   filter === f
-                    ? "bg-violet-500/10 text-violet-400"
-                    : "text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300"
+                    ? "bg-[#2e1065] text-violet-400"
+                    : "text-zinc-500 hover:bg-[#1a1a1e] hover:text-zinc-300"
                 }`}
               >
                 {f === "all" ? "All" : statusLabels[f]}
@@ -144,7 +144,7 @@ export default function BooksPage() {
 
           {/* Book Grid */}
           {filteredBooks.length === 0 ? (
-            <div className="mt-12 flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 py-16 text-zinc-600">
+            <div className="mt-12 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#1e1e22] py-16 text-zinc-600">
               <p className="text-sm">No books found</p>
               <button onClick={() => setShowModal(true)} className="mt-3 text-xs text-violet-400 hover:text-violet-300">
                 Add your first book
@@ -156,12 +156,12 @@ export default function BooksPage() {
                 <Link
                   key={book.id}
                   href={`/books/${book.id}`}
-                  className="group rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4 transition-all hover:border-zinc-700 hover:bg-zinc-900"
+                  className="group rounded-2xl border border-[#1e1e22] bg-[#111113] p-4 transition-all hover:border-[#2a2a2e] hover:bg-[#161618]"
                 >
                   {book.cover ? (
                     <img src={book.cover} alt={book.title} className="mx-auto h-44 rounded-lg object-cover shadow-lg transition-transform group-hover:scale-[1.02]" />
                   ) : (
-                    <div className="mx-auto flex h-44 w-28 items-center justify-center rounded-lg bg-zinc-800 text-xs text-zinc-500">No cover</div>
+                    <div className="mx-auto flex h-44 w-28 items-center justify-center rounded-lg bg-[#1a1a1e] text-xs text-zinc-500">No cover</div>
                   )}
                   <p className="mt-3 truncate text-sm font-medium text-zinc-200 group-hover:text-white">{book.title}</p>
                   <p className="truncate text-xs text-zinc-500">{book.author}</p>
@@ -176,7 +176,7 @@ export default function BooksPage() {
                     )}
                   </div>
                   {book.status === "reading" && book.totalPages > 0 && (
-                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-zinc-800">
+                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-[#1a1a1e]">
                       <div
                         className="h-full rounded-full bg-violet-500 transition-all"
                         style={{ width: `${Math.min(100, (book.pagesRead / book.totalPages) * 100)}%` }}
@@ -191,8 +191,8 @@ export default function BooksPage() {
 
         {/* Add Book Modal */}
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="animate-fade-in w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000000e6] backdrop-blur-sm">
+            <div className="animate-fade-in w-full max-w-lg rounded-2xl border border-[#1e1e22] bg-[#111113] p-6 shadow-2xl">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white">Add a Book</h3>
                 <button onClick={() => { setShowModal(false); setSearchQuery(""); setSearchResults([]); }} className="text-zinc-500 hover:text-zinc-300">
@@ -207,7 +207,7 @@ export default function BooksPage() {
                   placeholder="Search for a book..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-800/50 py-3 pl-10 pr-4 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500/50"
+                  className="w-full rounded-xl border border-[#27272a] bg-[#1a1a1e] py-3 pl-10 pr-4 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-[#6d28d9]"
                   autoFocus
                 />
               </div>
@@ -218,11 +218,11 @@ export default function BooksPage() {
                   <p className="py-4 text-center text-xs text-zinc-500">No results found</p>
                 )}
                 {searchResults.map((result) => (
-                  <div key={result.id} className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-800/30 p-3">
+                  <div key={result.id} className="flex items-center gap-3 rounded-xl border border-[#1e1e22] bg-[#141416] p-3">
                     {result.volumeInfo.imageLinks?.thumbnail ? (
                       <img src={result.volumeInfo.imageLinks.thumbnail.replace("http:", "https:")} alt="" className="h-16 w-11 rounded object-cover" />
                     ) : (
-                      <div className="flex h-16 w-11 items-center justify-center rounded bg-zinc-700 text-[8px] text-zinc-500">No img</div>
+                      <div className="flex h-16 w-11 items-center justify-center rounded bg-[#27272a] text-[8px] text-zinc-500">No img</div>
                     )}
                     <div className="flex-1 overflow-hidden">
                       <p className="truncate text-sm font-medium text-zinc-200">{result.volumeInfo.title}</p>
@@ -240,7 +240,7 @@ export default function BooksPage() {
                       </button>
                       <button
                         onClick={() => addBook(result, "to-read")}
-                        className="rounded-lg border border-zinc-700 px-3 py-1.5 text-[10px] font-medium text-zinc-400 hover:bg-zinc-800"
+                        className="rounded-lg border border-[#27272a] px-3 py-1.5 text-[10px] font-medium text-zinc-400 hover:bg-[#1a1a1e]"
                       >
                         To Read
                       </button>

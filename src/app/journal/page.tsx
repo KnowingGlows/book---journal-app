@@ -11,11 +11,11 @@ import { format } from "date-fns";
 import { HiOutlinePlus, HiOutlineTrash } from "react-icons/hi2";
 
 const moods = [
-  { label: "Great", value: "great", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-  { label: "Good", value: "good", color: "bg-violet-500/10 text-violet-400 border-violet-500/20" },
-  { label: "Okay", value: "okay", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  { label: "Bad", value: "bad", color: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
-  { label: "Awful", value: "awful", color: "bg-red-500/10 text-red-400 border-red-500/20" },
+  { label: "Great", value: "great", color: "bg-[#022c22] text-emerald-400 border-[#064e3b]" },
+  { label: "Good", value: "good", color: "bg-[#2e1065] text-violet-400 border-[#4c1d95]" },
+  { label: "Okay", value: "okay", color: "bg-[#451a03] text-amber-400 border-[#78350f]" },
+  { label: "Bad", value: "bad", color: "bg-[#431407] text-orange-400 border-[#7c2d12]" },
+  { label: "Awful", value: "awful", color: "bg-[#450a0a] text-red-400 border-[#7f1d1d]" },
 ];
 
 interface JournalEntry {
@@ -86,7 +86,7 @@ export default function JournalPage() {
   const allTags = Array.from(new Set(entries.flatMap((e) => e.tags || [])));
   const filteredEntries = filter === "all" ? entries : entries.filter((e) => e.mood === filter || (e.tags || []).includes(filter));
 
-  const moodColor = (m: string) => moods.find((mood) => mood.value === m)?.color || "bg-zinc-800 text-zinc-400";
+  const moodColor = (m: string) => moods.find((mood) => mood.value === m)?.color || "bg-[#1a1a1e] text-zinc-400";
 
   return (
     <AuthGuard>
@@ -112,7 +112,7 @@ export default function JournalPage() {
             <button
               onClick={() => setFilter("all")}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                filter === "all" ? "bg-violet-500/10 text-violet-400" : "text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300"
+                filter === "all" ? "bg-[#2e1065] text-violet-400" : "text-zinc-500 hover:bg-[#1a1a1e] hover:text-zinc-300"
               }`}
             >
               All
@@ -122,7 +122,7 @@ export default function JournalPage() {
                 key={m.value}
                 onClick={() => setFilter(m.value)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                  filter === m.value ? m.color.replace("/10", "/20") : "text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300"
+                  filter === m.value ? m.color.replace("/10", "/20") : "text-zinc-500 hover:bg-[#1a1a1e] hover:text-zinc-300"
                 }`}
               >
                 {m.label}
@@ -133,7 +133,7 @@ export default function JournalPage() {
                 key={tag}
                 onClick={() => setFilter(tag)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                  filter === tag ? "bg-violet-500/10 text-violet-400" : "text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300"
+                  filter === tag ? "bg-[#2e1065] text-violet-400" : "text-zinc-500 hover:bg-[#1a1a1e] hover:text-zinc-300"
                 }`}
               >
                 #{tag}
@@ -143,7 +143,7 @@ export default function JournalPage() {
 
           {/* Entries */}
           {filteredEntries.length === 0 ? (
-            <div className="mt-12 flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 py-16 text-zinc-600">
+            <div className="mt-12 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#1e1e22] py-16 text-zinc-600">
               <p className="text-sm">No journal entries yet</p>
               <button onClick={() => setShowNew(true)} className="mt-3 text-xs text-violet-400 hover:text-violet-300">
                 Write your first entry
@@ -155,7 +155,7 @@ export default function JournalPage() {
                 <Link
                   key={entry.id}
                   href={`/journal/${entry.id}`}
-                  className="group block rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 transition-all hover:border-zinc-700 hover:bg-zinc-900"
+                  className="group block rounded-2xl border border-[#1e1e22] bg-[#111113] p-5 transition-all hover:border-[#2a2a2e] hover:bg-[#161618]"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1 overflow-hidden">
@@ -173,7 +173,7 @@ export default function JournalPage() {
                           {entry.createdAt?.toDate ? format(entry.createdAt.toDate(), "MMM d, yyyy 'at' h:mm a") : ""}
                         </span>
                         {(entry.tags || []).map((tag) => (
-                          <span key={tag} className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-500">#{tag}</span>
+                          <span key={tag} className="rounded bg-[#1a1a1e] px-1.5 py-0.5 text-[10px] text-zinc-500">#{tag}</span>
                         ))}
                       </div>
                     </div>
@@ -192,8 +192,8 @@ export default function JournalPage() {
 
         {/* New Entry Modal */}
         {showNew && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="animate-fade-in w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000000e6] backdrop-blur-sm">
+            <div className="animate-fade-in w-full max-w-lg rounded-2xl border border-[#1e1e22] bg-[#111113] p-6 shadow-2xl">
               <h3 className="text-lg font-semibold text-white">New Journal Entry</h3>
 
               <input
@@ -201,7 +201,7 @@ export default function JournalPage() {
                 placeholder="Title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="mt-4 w-full rounded-xl border border-zinc-800 bg-zinc-800/30 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500/50"
+                className="mt-4 w-full rounded-xl border border-[#1e1e22] bg-[#141416] px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-[#6d28d9]"
                 autoFocus
               />
 
@@ -210,7 +210,7 @@ export default function JournalPage() {
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={8}
-                className="mt-3 w-full resize-none rounded-xl border border-zinc-800 bg-zinc-800/30 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500/50"
+                className="mt-3 w-full resize-none rounded-xl border border-[#1e1e22] bg-[#141416] px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-[#6d28d9]"
               />
 
               <div className="mt-3">
@@ -221,7 +221,7 @@ export default function JournalPage() {
                       key={m.value}
                       onClick={() => setMood(m.value)}
                       className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
-                        mood === m.value ? m.color : "border-zinc-800 text-zinc-600 hover:text-zinc-400"
+                        mood === m.value ? m.color : "border-[#1e1e22] text-zinc-600 hover:text-zinc-400"
                       }`}
                     >
                       {m.label}
@@ -239,14 +239,14 @@ export default function JournalPage() {
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
-                    className="flex-1 rounded-xl border border-zinc-800 bg-zinc-800/30 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500/50"
+                    className="flex-1 rounded-xl border border-[#1e1e22] bg-[#141416] px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-[#6d28d9]"
                   />
-                  <button onClick={addTag} className="rounded-xl border border-zinc-800 px-3 py-2 text-xs text-zinc-400 hover:bg-zinc-800">Add</button>
+                  <button onClick={addTag} className="rounded-xl border border-[#1e1e22] px-3 py-2 text-xs text-zinc-400 hover:bg-[#1a1a1e]">Add</button>
                 </div>
                 {tags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {tags.map((tag) => (
-                      <span key={tag} className="flex items-center gap-1 rounded bg-zinc-800 px-2 py-1 text-[10px] text-zinc-400">
+                      <span key={tag} className="flex items-center gap-1 rounded bg-[#1a1a1e] px-2 py-1 text-[10px] text-zinc-400">
                         #{tag}
                         <button onClick={() => setTags(tags.filter((t) => t !== tag))} className="text-zinc-600 hover:text-red-400">&times;</button>
                       </span>
@@ -258,7 +258,7 @@ export default function JournalPage() {
               <div className="mt-5 flex justify-end gap-3">
                 <button
                   onClick={() => { setShowNew(false); setTitle(""); setContent(""); setTags([]); }}
-                  className="rounded-xl border border-zinc-800 px-4 py-2.5 text-sm text-zinc-400 hover:bg-zinc-800"
+                  className="rounded-xl border border-[#1e1e22] px-4 py-2.5 text-sm text-zinc-400 hover:bg-[#1a1a1e]"
                 >
                   Cancel
                 </button>

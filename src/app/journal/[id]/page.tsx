@@ -12,11 +12,11 @@ import { format } from "date-fns";
 import { HiOutlineArrowLeft, HiOutlineTrash, HiOutlinePencilSquare } from "react-icons/hi2";
 
 const moods = [
-  { label: "Great", value: "great", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-  { label: "Good", value: "good", color: "bg-violet-500/10 text-violet-400 border-violet-500/20" },
-  { label: "Okay", value: "okay", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  { label: "Bad", value: "bad", color: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
-  { label: "Awful", value: "awful", color: "bg-red-500/10 text-red-400 border-red-500/20" },
+  { label: "Great", value: "great", color: "bg-[#022c22] text-emerald-400 border-[#064e3b]" },
+  { label: "Good", value: "good", color: "bg-[#2e1065] text-violet-400 border-[#4c1d95]" },
+  { label: "Okay", value: "okay", color: "bg-[#451a03] text-amber-400 border-[#78350f]" },
+  { label: "Bad", value: "bad", color: "bg-[#431407] text-orange-400 border-[#7c2d12]" },
+  { label: "Awful", value: "awful", color: "bg-[#450a0a] text-red-400 border-[#7f1d1d]" },
 ];
 
 interface JournalData {
@@ -122,14 +122,14 @@ export default function JournalDetailPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setEditing(!editing)}
-                className="flex items-center gap-2 rounded-xl border border-zinc-800 px-3 py-2 text-xs text-zinc-400 hover:bg-zinc-800"
+                className="flex items-center gap-2 rounded-xl border border-[#1e1e22] px-3 py-2 text-xs text-zinc-400 hover:bg-[#1a1a1e]"
               >
                 <HiOutlinePencilSquare className="h-4 w-4" />
                 {editing ? "Cancel" : "Edit"}
               </button>
               <button
                 onClick={deleteEntry}
-                className="flex items-center gap-2 rounded-xl border border-zinc-800 px-3 py-2 text-xs text-zinc-400 hover:border-red-500/30 hover:text-red-400"
+                className="flex items-center gap-2 rounded-xl border border-[#1e1e22] px-3 py-2 text-xs text-zinc-400 hover:border-[#991b1b] hover:text-red-400"
               >
                 <HiOutlineTrash className="h-4 w-4" />
               </button>
@@ -142,13 +142,13 @@ export default function JournalDetailPage() {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full rounded-xl border border-zinc-800 bg-zinc-800/30 px-4 py-3 text-lg font-semibold text-zinc-100 outline-none focus:border-violet-500/50"
+                className="w-full rounded-xl border border-[#1e1e22] bg-[#141416] px-4 py-3 text-lg font-semibold text-zinc-100 outline-none focus:border-[#6d28d9]"
               />
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={15}
-                className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-800/30 px-4 py-3 text-sm leading-relaxed text-zinc-100 outline-none focus:border-violet-500/50"
+                className="w-full resize-none rounded-xl border border-[#1e1e22] bg-[#141416] px-4 py-3 text-sm leading-relaxed text-zinc-100 outline-none focus:border-[#6d28d9]"
               />
               <div>
                 <p className="mb-2 text-xs text-zinc-500">Mood</p>
@@ -158,7 +158,7 @@ export default function JournalDetailPage() {
                       key={m.value}
                       onClick={() => setMood(m.value)}
                       className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
-                        mood === m.value ? m.color : "border-zinc-800 text-zinc-600 hover:text-zinc-400"
+                        mood === m.value ? m.color : "border-[#1e1e22] text-zinc-600 hover:text-zinc-400"
                       }`}
                     >
                       {m.label}
@@ -175,14 +175,14 @@ export default function JournalDetailPage() {
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
-                    className="flex-1 rounded-xl border border-zinc-800 bg-zinc-800/30 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500/50"
+                    className="flex-1 rounded-xl border border-[#1e1e22] bg-[#141416] px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-[#6d28d9]"
                   />
-                  <button onClick={addTag} className="rounded-xl border border-zinc-800 px-3 py-2 text-xs text-zinc-400 hover:bg-zinc-800">Add</button>
+                  <button onClick={addTag} className="rounded-xl border border-[#1e1e22] px-3 py-2 text-xs text-zinc-400 hover:bg-[#1a1a1e]">Add</button>
                 </div>
                 {tags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {tags.map((tag) => (
-                      <span key={tag} className="flex items-center gap-1 rounded bg-zinc-800 px-2 py-1 text-[10px] text-zinc-400">
+                      <span key={tag} className="flex items-center gap-1 rounded bg-[#1a1a1e] px-2 py-1 text-[10px] text-zinc-400">
                         #{tag}
                         <button onClick={() => setTags(tags.filter((t) => t !== tag))} className="text-zinc-600 hover:text-red-400">&times;</button>
                       </span>
@@ -218,7 +218,7 @@ export default function JournalDetailPage() {
               {(entry.tags || []).length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {entry.tags.map((tag) => (
-                    <span key={tag} className="rounded bg-zinc-800 px-2 py-1 text-[10px] text-zinc-500">#{tag}</span>
+                    <span key={tag} className="rounded bg-[#1a1a1e] px-2 py-1 text-[10px] text-zinc-500">#{tag}</span>
                   ))}
                 </div>
               )}
