@@ -8,7 +8,8 @@ export async function GET(req: NextRequest) {
   if (!q) return NextResponse.json({ items: [] });
 
   try {
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=8`;
+    const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=8${apiKey ? `&key=${apiKey}` : ""}`;
     const res = await fetch(url);
 
     if (!res.ok) {
