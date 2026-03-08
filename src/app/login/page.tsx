@@ -37,7 +37,6 @@ export default function LoginPage() {
     setError("");
     try {
       await signInWithGoogle();
-      router.push("/");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong";
       setError(message.replace("Firebase: ", "").replace(/\(auth\/.*\)/, "").trim());
