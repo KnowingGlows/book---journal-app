@@ -35,6 +35,7 @@ interface BookData {
   description?: string;
   readingLog: ReadingLogEntry[];
   notes: NoteEntry[];
+  noteContent?: string;
 }
 
 const statusStyles: Record<string, string> = {
@@ -241,14 +242,14 @@ export default function BookDetailPage() {
             className="mt-6 flex items-center justify-between rounded-2xl border border-[#1e1e22] bg-[#111113] p-5 transition-all hover:border-[#2a2a2e] hover:bg-[#161618]"
           >
             <div>
-              <h3 className="text-sm font-semibold text-white">Notes & Important Passages</h3>
+              <h3 className="text-sm font-semibold text-white">Notes</h3>
               <p className="mt-1 text-xs text-zinc-500">
-                {book.notes && book.notes.length > 0
-                  ? `${book.notes.length} note${book.notes.length === 1 ? "" : "s"}`
-                  : "No notes yet. Tap to add one."}
+                {book.noteContent
+                  ? `${book.noteContent.trim().split(/\s+/).length} words`
+                  : "No notes yet. Tap to start writing."}
               </p>
             </div>
-            <span className="text-xs text-violet-400">View all &rarr;</span>
+            <span className="text-xs text-violet-400">Open editor &rarr;</span>
           </Link>
 
           {/* Description */}
