@@ -50,8 +50,6 @@ export default function BookDetailPage() {
   const [book, setBook] = useState<BookData | null>(null);
   const [loading, setLoading] = useState(true);
   const [pagesToday, setPagesToday] = useState("");
-  const [noteText, setNoteText] = useState("");
-  const [notePage, setNotePage] = useState("");
 
   const bookRef = user ? doc(db, "users", user.uid, "books", id as string) : null;
 
@@ -81,20 +79,6 @@ export default function BookDetailPage() {
       readingLog: arrayUnion(entry),
     });
     setPagesToday("");
-    fetchBook();
-  };
-
-  const addNote = async () => {
-    if (!bookRef || !noteText.trim()) return;
-    const note: NoteEntry = {
-      id: Date.now().toString(),
-      text: noteText.trim(),
-      page: notePage ? parseInt(notePage) : undefined,
-      createdAt: new Date().toISOString(),
-    };
-    await updateDoc(bookRef, { notes: arrayUnion(note) });
-    setNoteText("");
-    setNotePage("");
     fetchBook();
   };
 
@@ -251,47 +235,21 @@ export default function BookDetailPage() {
             </div>
           )}
 
-          {/* Notes / Important Passages */}
-          <div className="mt-6 rounded-2xl border border-[#1e1e22] bg-[#111113] p-5">
-            <h3 className="text-sm font-semibold text-white">Notes & Important Passages</h3>
-            <div className="mt-3 flex gap-3">
-              <input
-                type="number"
-                placeholder="Page #"
-                value={notePage}
-                onChange={(e) => setNotePage(e.target.value)}
-                className="w-24 rounded-xl border border-[#1e1e22] bg-[#141416] px-3 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-[#6d28d9]"
-                min="1"
-              />
-              <input
-                type="text"
-                placeholder="Write a note or important passage..."
-                value={noteText}
-                onChange={(e) => setNoteText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addNote()}
-                className="flex-1 rounded-xl border border-[#1e1e22] bg-[#141416] px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-[#6d28d9]"
-              />
-              <button
-                onClick={addNote}
-                className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-violet-500"
-              >
-                Add
-              </button>
+          {/* Notes */}
+          <Link
+            href={`/books/${id}/notes`}
+            className="mt-6 flex items-center justify-between rounded-2xl border border-[#1e1e22] bg-[#111113] p-5 transition-all hover:border-[#2a2a2e] hover:bg-[#161618]"
+          >
+            <div>
+              <h3 className="text-sm font-semibold text-white">Notes & Important Passages</h3>
+              <p className="mt-1 text-xs text-zinc-500">
+                {book.notes && book.notes.length > 0
+                  ? `${book.notes.length} note${book.notes.length === 1 ? "" : "s"}`
+                  : "No notes yet. Tap to add one."}
+              </p>
             </div>
-            {book.notes && book.notes.length > 0 && (
-              <div className="mt-4 space-y-2">
-                {[...book.notes].reverse().map((note) => (
-                  <div key={note.id} className="rounded-lg bg-[#141416] px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      {note.page && <span className="rounded bg-[#27272a] px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">p.{note.page}</span>}
-                      <span className="text-[10px] text-zinc-600">{format(new Date(note.createdAt), "MMM d, yyyy")}</span>
-                    </div>
-                    <p className="mt-1 text-sm text-zinc-300">{note.text}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+            <span className="text-xs text-violet-400">View all &rarr;</span>
+          </Link>
 
           {/* Description */}
           {book.description && (

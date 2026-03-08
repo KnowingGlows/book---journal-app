@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, orderBy, query, Timestamp, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, deleteDoc, doc } from "firebase/firestore";
 import Sidebar from "@/components/Sidebar";
 import AuthGuard from "@/components/AuthGuard";
 import Link from "next/link";
@@ -30,12 +30,6 @@ interface JournalEntry {
 export default function JournalPage() {
   const { user } = useAuth();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [showNew, setShowNew] = useState(false);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [mood, setMood] = useState("good");
-  const [tagInput, setTagInput] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
   const [filter, setFilter] = useState("all");
 
   const fetchEntries = async () => {
@@ -49,38 +43,12 @@ export default function JournalPage() {
     fetchEntries();
   }, [user]);
 
-  const createEntry = async () => {
-    if (!user || !title.trim()) return;
-    await addDoc(collection(db, "users", user.uid, "journals"), {
-      title: title.trim(),
-      content: content.trim(),
-      mood,
-      tags,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
-    });
-    setTitle("");
-    setContent("");
-    setMood("good");
-    setTags([]);
-    setShowNew(false);
-    fetchEntries();
-  };
-
   const deleteEntry = async (entryId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!user || !confirm("Delete this journal entry?")) return;
     await deleteDoc(doc(db, "users", user.uid, "journals", entryId));
     fetchEntries();
-  };
-
-  const addTag = () => {
-    const tag = tagInput.trim().toLowerCase();
-    if (tag && !tags.includes(tag)) {
-      setTags([...tags, tag]);
-    }
-    setTagInput("");
   };
 
   const allTags = Array.from(new Set(entries.flatMap((e) => e.tags || [])));
@@ -98,13 +66,13 @@ export default function JournalPage() {
               <h2 className="text-2xl font-bold text-white">Journal</h2>
               <p className="mt-1 text-sm text-zinc-500">{entries.length} entries</p>
             </div>
-            <button
-              onClick={() => setShowNew(true)}
+            <Link
+              href="/journal/new"
               className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-violet-500"
             >
               <HiOutlinePlus className="h-4 w-4" />
               New Entry
-            </button>
+            </Link>
           </div>
 
           {/* Filters */}
@@ -145,9 +113,9 @@ export default function JournalPage() {
           {filteredEntries.length === 0 ? (
             <div className="mt-12 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#1e1e22] py-16 text-zinc-600">
               <p className="text-sm">No journal entries yet</p>
-              <button onClick={() => setShowNew(true)} className="mt-3 text-xs text-violet-400 hover:text-violet-300">
+              <Link href="/journal/new" className="mt-3 text-xs text-violet-400 hover:text-violet-300">
                 Write your first entry
-              </button>
+              </Link>
             </div>
           ) : (
             <div className="mt-6 space-y-3">
@@ -190,88 +158,6 @@ export default function JournalPage() {
           )}
         </div>
 
-        {/* New Entry Modal */}
-        {showNew && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000000e6] backdrop-blur-sm">
-            <div className="animate-fade-in w-full max-w-lg rounded-2xl border border-[#1e1e22] bg-[#111113] p-6 shadow-2xl">
-              <h3 className="text-lg font-semibold text-white">New Journal Entry</h3>
-
-              <input
-                type="text"
-                placeholder="Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="mt-4 w-full rounded-xl border border-[#1e1e22] bg-[#141416] px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-[#6d28d9]"
-                autoFocus
-              />
-
-              <textarea
-                placeholder="Write your thoughts..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={8}
-                className="mt-3 w-full resize-none rounded-xl border border-[#1e1e22] bg-[#141416] px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-[#6d28d9]"
-              />
-
-              <div className="mt-3">
-                <p className="mb-2 text-xs text-zinc-500">How are you feeling?</p>
-                <div className="flex gap-2">
-                  {moods.map((m) => (
-                    <button
-                      key={m.value}
-                      onClick={() => setMood(m.value)}
-                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
-                        mood === m.value ? m.color : "border-[#1e1e22] text-zinc-600 hover:text-zinc-400"
-                      }`}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-3">
-                <p className="mb-2 text-xs text-zinc-500">Tags</p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Add a tag..."
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
-                    className="flex-1 rounded-xl border border-[#1e1e22] bg-[#141416] px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-[#6d28d9]"
-                  />
-                  <button onClick={addTag} className="rounded-xl border border-[#1e1e22] px-3 py-2 text-xs text-zinc-400 hover:bg-[#1a1a1e]">Add</button>
-                </div>
-                {tags.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {tags.map((tag) => (
-                      <span key={tag} className="flex items-center gap-1 rounded bg-[#1a1a1e] px-2 py-1 text-[10px] text-zinc-400">
-                        #{tag}
-                        <button onClick={() => setTags(tags.filter((t) => t !== tag))} className="text-zinc-600 hover:text-red-400">&times;</button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-5 flex justify-end gap-3">
-                <button
-                  onClick={() => { setShowNew(false); setTitle(""); setContent(""); setTags([]); }}
-                  className="rounded-xl border border-[#1e1e22] px-4 py-2.5 text-sm text-zinc-400 hover:bg-[#1a1a1e]"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={createEntry}
-                  className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-violet-500"
-                >
-                  Save Entry
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
     </AuthGuard>
   );
