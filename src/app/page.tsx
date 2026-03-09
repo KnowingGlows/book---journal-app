@@ -69,14 +69,14 @@ export default function Home() {
           {/* Stats */}
           <div className="mt-8 grid grid-cols-3 gap-4">
             {[
-              { label: "Currently Reading", value: bookCounts.reading, color: "text-violet-400" },
-              { label: "Completed", value: bookCounts.completed, color: "text-emerald-400" },
-              { label: "To Read", value: bookCounts.toRead, color: "text-amber-400" },
+              { label: "Currently Reading", value: bookCounts.reading, color: "text-violet-400", filter: "reading" },
+              { label: "Completed", value: bookCounts.completed, color: "text-emerald-400", filter: "completed" },
+              { label: "To Read", value: bookCounts.toRead, color: "text-amber-400", filter: "to-read" },
             ].map((stat) => (
-              <div key={stat.label} className="rounded-2xl border border-[#1e1e22] bg-[#111113] p-5">
+              <Link key={stat.label} href={`/books?filter=${stat.filter}`} className="rounded-2xl border border-[#1e1e22] bg-[#111113] p-5 transition-all hover:border-[#2a2a2e] hover:bg-[#161618]">
                 <p className="text-xs text-zinc-500">{stat.label}</p>
                 <p className={`mt-1 text-3xl font-bold ${stat.color}`}>{stat.value}</p>
-              </div>
+              </Link>
             ))}
           </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, getDocs, orderBy, query, Timestamp, updateDoc, doc } from "firebase/firestore";
@@ -45,14 +46,23 @@ const statusLabels: Record<string, string> = {
   completed: "Completed",
 };
 
-export default function BooksPage() {
+export default function BooksPageWrapper() {
+  return (
+    <Suspense>
+      <BooksPage />
+    </Suspense>
+  );
+}
+
+function BooksPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [books, setBooks] = useState<Book[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<BookResult[]>([]);
   const [searching, setSearching] = useState(false);
-  const [filter, setFilter] = useState<string>("all");
+  const [filter, setFilter] = useState<string>(searchParams.get("filter") || "all");
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const fetchBooks = async () => {

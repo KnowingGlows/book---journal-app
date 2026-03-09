@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase";
@@ -9,7 +9,7 @@ import Sidebar from "@/components/Sidebar";
 import AuthGuard from "@/components/AuthGuard";
 import Link from "next/link";
 import { format, differenceInDays } from "date-fns";
-import { HiOutlineArrowLeft, HiOutlineTrash } from "react-icons/hi2";
+import { HiOutlineArrowLeft, HiOutlineTrash, HiOutlinePencil, HiOutlineMagnifyingGlass, HiOutlineXMark } from "react-icons/hi2";
 
 interface ReadingLogEntry {
   date: string;
@@ -51,6 +51,11 @@ export default function BookDetailPage() {
   const [book, setBook] = useState<BookData | null>(null);
   const [loading, setLoading] = useState(true);
   const [pagesToday, setPagesToday] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editSearch, setEditSearch] = useState("");
+  const [editResults, setEditResults] = useState<{ id: string; volumeInfo: { title: string; authors?: string[]; pageCount?: number; imageLinks?: { thumbnail?: string }; description?: string } }[]>([]);
+  const [editSearching, setEditSearching] = useState(false);
+  const editTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const bookRef = user ? doc(db, "users", user.uid, "books", id as string) : null;
 
@@ -98,6 +103,36 @@ export default function BookDetailPage() {
     if (!confirm("Are you sure you want to delete this book?")) return;
     await deleteDoc(bookRef);
     router.push("/books");
+  };
+
+  const handleEditSearch = (val: string) => {
+    setEditSearch(val);
+    if (editTimeout.current) clearTimeout(editTimeout.current);
+    if (val.length < 2) { setEditResults([]); return; }
+    setEditSearching(true);
+    editTimeout.current = setTimeout(async () => {
+      const res = await fetch(`/api/books/search?q=${encodeURIComponent(val)}`);
+      const data = await res.json();
+      setEditResults(data.items || []);
+      setEditSearching(false);
+    }, 400);
+  };
+
+  const replaceBook = async (result: { volumeInfo: { title: string; authors?: string[]; pageCount?: number; imageLinks?: { thumbnail?: string }; description?: string } }) => {
+    if (!bookRef) return;
+    const { volumeInfo } = result;
+    const cover = volumeInfo.imageLinks?.thumbnail?.replace("http:", "https:") || "";
+    await updateDoc(bookRef, {
+      title: volumeInfo.title,
+      author: volumeInfo.authors?.join(", ") || "Unknown",
+      cover,
+      totalPages: volumeInfo.pageCount || 0,
+      description: volumeInfo.description || "",
+    });
+    setShowEditModal(false);
+    setEditSearch("");
+    setEditResults([]);
+    fetchBook();
   };
 
   if (loading) {
@@ -160,7 +195,10 @@ export default function BookDetailPage() {
                     {s === "reading" ? "Reading" : s === "to-read" ? "To Read" : "Completed"}
                   </button>
                 ))}
-                <button onClick={deleteBook} className="ml-auto rounded-lg border border-[#1e1e22] p-1.5 text-zinc-600 transition-all hover:border-red-500/30 hover:text-red-400">
+                <button onClick={() => { setShowEditModal(true); setEditSearch(book.title); handleEditSearch(book.title); }} className="ml-auto rounded-lg border border-[#1e1e22] p-1.5 text-zinc-600 transition-all hover:border-violet-500/30 hover:text-violet-400">
+                  <HiOutlinePencil className="h-4 w-4" />
+                </button>
+                <button onClick={deleteBook} className="rounded-lg border border-[#1e1e22] p-1.5 text-zinc-600 transition-all hover:border-red-500/30 hover:text-red-400">
                   <HiOutlineTrash className="h-4 w-4" />
                 </button>
               </div>
@@ -260,6 +298,61 @@ export default function BookDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Edit Book Modal */}
+        {showEditModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000000e6] backdrop-blur-sm">
+            <div className="animate-fade-in w-full max-w-lg rounded-2xl border border-[#1e1e22] bg-[#111113] p-6 shadow-2xl">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">Replace Book Info</h3>
+                <button onClick={() => { setShowEditModal(false); setEditSearch(""); setEditResults([]); }} className="text-zinc-500 hover:text-zinc-300">
+                  <HiOutlineXMark className="h-5 w-5" />
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-zinc-500">Search for the correct book to update title, author, cover & page count.</p>
+
+              <div className="relative mt-4">
+                <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                <input
+                  type="text"
+                  placeholder="Search for the correct book..."
+                  value={editSearch}
+                  onChange={(e) => handleEditSearch(e.target.value)}
+                  className="w-full rounded-xl border border-[#27272a] bg-[#1a1a1e] py-3 pl-10 pr-4 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-[#6d28d9]"
+                  autoFocus
+                />
+              </div>
+
+              <div className="mt-4 max-h-80 space-y-2 overflow-y-auto">
+                {editSearching && <p className="py-4 text-center text-xs text-zinc-500">Searching...</p>}
+                {!editSearching && editSearch.length >= 2 && editResults.length === 0 && (
+                  <p className="py-4 text-center text-xs text-zinc-500">No results found</p>
+                )}
+                {editResults.map((result) => (
+                  <button
+                    key={result.id}
+                    onClick={() => replaceBook(result)}
+                    className="flex w-full items-center gap-3 rounded-xl border border-[#1e1e22] bg-[#141416] p-3 text-left transition-all hover:border-[#2a2a2e] hover:bg-[#1a1a1e]"
+                  >
+                    {result.volumeInfo.imageLinks?.thumbnail ? (
+                      <img src={result.volumeInfo.imageLinks.thumbnail.replace("http:", "https:")} alt="" className="h-16 w-11 rounded object-cover" />
+                    ) : (
+                      <div className="flex h-16 w-11 items-center justify-center rounded bg-[#27272a] text-[8px] text-zinc-500">No img</div>
+                    )}
+                    <div className="flex-1 overflow-hidden">
+                      <p className="truncate text-sm font-medium text-zinc-200">{result.volumeInfo.title}</p>
+                      <p className="truncate text-xs text-zinc-500">{result.volumeInfo.authors?.join(", ") || "Unknown"}</p>
+                      {result.volumeInfo.pageCount && (
+                        <p className="text-xs text-zinc-600">{result.volumeInfo.pageCount} pages</p>
+                      )}
+                    </div>
+                    <span className="rounded-lg bg-violet-600 px-3 py-1.5 text-[10px] font-medium text-white">Select</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </AuthGuard>
   );
