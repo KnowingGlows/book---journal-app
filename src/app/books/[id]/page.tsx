@@ -195,10 +195,10 @@ export default function BookDetailPage() {
                     {s === "reading" ? "Reading" : s === "to-read" ? "To Read" : "Completed"}
                   </button>
                 ))}
-                <button onClick={() => { setShowEditModal(true); setEditSearch(book.title); handleEditSearch(book.title); }} className="ml-auto rounded-lg border border-[#1e1e22] p-1.5 text-zinc-600 transition-all hover:border-violet-500/30 hover:text-violet-400">
+                <button onClick={() => { setShowEditModal(true); setEditSearch(book.title); handleEditSearch(book.title); }} className="ml-auto rounded-lg border border-[#27272a] bg-[#1a1a1e] p-2 text-zinc-300 transition-all hover:border-violet-500 hover:text-violet-400">
                   <HiOutlinePencil className="h-4 w-4" />
                 </button>
-                <button onClick={deleteBook} className="rounded-lg border border-[#1e1e22] p-1.5 text-zinc-600 transition-all hover:border-red-500/30 hover:text-red-400">
+                <button onClick={deleteBook} className="rounded-lg border border-[#27272a] bg-[#1a1a1e] p-2 text-zinc-300 transition-all hover:border-red-500 hover:text-red-400">
                   <HiOutlineTrash className="h-4 w-4" />
                 </button>
               </div>
