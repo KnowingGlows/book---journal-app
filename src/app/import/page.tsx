@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, Timestamp, getDocs, query } from "firebase/firestore";
+import { collection, addDoc, Timestamp, getDocs, query, doc, updateDoc } from "firebase/firestore";
 import Sidebar from "@/components/Sidebar";
 import AuthGuard from "@/components/AuthGuard";
 
@@ -164,6 +164,56 @@ export default function ImportPage() {
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
   const [skipped, setSkipped] = useState(0);
+  const [fetchingCovers, setFetchingCovers] = useState(false);
+  const [coverProgress, setCoverProgress] = useState(0);
+  const [coverTotal, setCoverTotal] = useState(0);
+  const [coversDone, setCoversDone] = useState(false);
+  const [coversUpdated, setCoversUpdated] = useState(0);
+
+  const fetchCovers = async () => {
+    if (!user) return;
+    setFetchingCovers(true);
+    setCoverProgress(0);
+    let updated = 0;
+
+    const snap = await getDocs(query(collection(db, "users", user.uid, "books")));
+    const booksWithoutCovers = snap.docs.filter((d) => !d.data().cover);
+    setCoverTotal(booksWithoutCovers.length);
+
+    for (let i = 0; i < booksWithoutCovers.length; i++) {
+      const bookDoc = booksWithoutCovers[i];
+      const data = bookDoc.data();
+      const searchQuery = `${data.title} ${data.author}`;
+
+      try {
+        const res = await fetch(`/api/books/search?q=${encodeURIComponent(searchQuery)}`);
+        const result = await res.json();
+        const items = result.items || [];
+
+        if (items.length > 0 && items[0].volumeInfo?.imageLinks?.thumbnail) {
+          const cover = items[0].volumeInfo.imageLinks.thumbnail.replace("http:", "https:");
+          const pageCount = items[0].volumeInfo?.pageCount || 0;
+          const updateData: Record<string, unknown> = { cover };
+          if (pageCount && !data.totalPages) {
+            updateData.totalPages = pageCount;
+            if (data.status === "completed") updateData.pagesRead = pageCount;
+          }
+          await updateDoc(doc(db, "users", user.uid, "books", bookDoc.id), updateData);
+          updated++;
+        }
+      } catch {
+        // skip failed lookups
+      }
+
+      setCoverProgress(i + 1);
+      // Small delay to avoid hammering the API
+      await new Promise((r) => setTimeout(r, 300));
+    }
+
+    setCoversUpdated(updated);
+    setCoversDone(true);
+    setFetchingCovers(false);
+  };
 
   const runImport = async () => {
     if (!user) return;
@@ -264,6 +314,41 @@ export default function ImportPage() {
               </a>
             </div>
           )}
+
+          {/* Fetch Covers Section */}
+          <div className="mt-8 rounded-2xl border border-[#1e1e22] bg-[#111113] p-6">
+            <h2 className="text-sm font-semibold text-white">Fetch Book Covers</h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Looks up each book without a cover via Google Books API and fills in the cover image + page count.
+            </p>
+
+            {coversDone ? (
+              <div className="mt-4">
+                <p className="text-sm text-emerald-400">
+                  Updated {coversUpdated} / {coverTotal} books with covers
+                </p>
+              </div>
+            ) : fetchingCovers ? (
+              <div className="mt-4">
+                <div className="h-2 overflow-hidden rounded-full bg-[#1a1a1e]">
+                  <div
+                    className="h-full rounded-full bg-violet-500 transition-all"
+                    style={{ width: `${coverTotal ? (coverProgress / coverTotal) * 100 : 0}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-zinc-400">
+                  {coverProgress} / {coverTotal} books checked...
+                </p>
+              </div>
+            ) : (
+              <button
+                onClick={fetchCovers}
+                className="mt-4 rounded-xl bg-[#1a1a1e] px-6 py-2.5 text-sm font-medium text-violet-400 transition-all hover:bg-[#222226]"
+              >
+                Fetch Covers
+              </button>
+            )}
+          </div>
 
           <p className="mt-6 text-[10px] text-zinc-700">
             Duplicates are automatically skipped based on title
