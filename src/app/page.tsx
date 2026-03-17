@@ -59,7 +59,7 @@ function calcPoints(h: HabitData): number {
 }
 
 function getMaxPoints(h: HabitData): number {
-  let max = 5; // 5 checkboxes
+  let max = 6; // 5 checkboxes + 1 for work (6h)
   if (h.workHours >= 6) {
     max += 1;
     max += Math.floor((h.workHours - 6) / 2) * 0.5;
@@ -128,8 +128,8 @@ export default function Home() {
   const maxPts = getMaxPoints(habits);
 
   const habitChecks = [
-    { key: "wakeUp" as const, label: "Wake Up On Time", sub: "", icon: HiOutlineSun, color: "text-amber-400", bgActive: "bg-amber-500/10 border-amber-500/30" },
-    { key: "sleepOnTime" as const, label: "Sleep On Time", sub: "", icon: HiOutlineMoon, color: "text-indigo-400", bgActive: "bg-indigo-500/10 border-indigo-500/30" },
+    { key: "wakeUp" as const, label: "Wake Up On Time", sub: "~5 AM", icon: HiOutlineSun, color: "text-amber-400", bgActive: "bg-amber-500/10 border-amber-500/30" },
+    { key: "sleepOnTime" as const, label: "Sleep On Time", sub: "~9 PM", icon: HiOutlineMoon, color: "text-indigo-400", bgActive: "bg-indigo-500/10 border-indigo-500/30" },
     { key: "reading" as const, label: "Reading", sub: "90 min", icon: HiOutlineBookOpen, color: "text-emerald-400", bgActive: "bg-emerald-500/10 border-emerald-500/30" },
     { key: "journal" as const, label: "Diary / Journal", sub: "", icon: HiOutlinePencilSquare, color: "text-violet-400", bgActive: "bg-violet-500/10 border-violet-500/30" },
     { key: "workout" as const, label: "Workout", sub: "", icon: HiOutlineBolt, color: "text-orange-400", bgActive: "bg-orange-500/10 border-orange-500/30" },
