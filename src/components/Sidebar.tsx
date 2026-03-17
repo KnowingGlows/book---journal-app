@@ -7,7 +7,7 @@ import { HiOutlineBookOpen, HiOutlinePencilSquare, HiOutlineHome, HiOutlineArrow
 
 const navItems = [
   { href: "/", label: "Habits", icon: HiOutlineCheckCircle },
-  { href: "/dashboard", label: "Dashboard", icon: HiOutlineChartBar },
+  { href: "/dashboard", label: "Books Dashboard", icon: HiOutlineChartBar },
   { href: "/books", label: "Books", icon: HiOutlineBookOpen },
   { href: "/journal", label: "Journal", icon: HiOutlinePencilSquare },
 ];

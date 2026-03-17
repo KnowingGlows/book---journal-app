@@ -5,7 +5,7 @@ import AuthGuard from "@/components/AuthGuard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
 import { format, subDays, addDays } from "date-fns";
 import {
   HiOutlineSun,
@@ -17,6 +17,7 @@ import {
   HiOutlineChevronLeft,
   HiOutlineChevronRight,
   HiOutlineTrophy,
+  HiOutlineBolt,
 } from "react-icons/hi2";
 
 interface HabitData {
@@ -24,6 +25,7 @@ interface HabitData {
   sleepOnTime: boolean;
   reading: boolean;
   journal: boolean;
+  workout: boolean;
   workHours: number;
   timeWasted: number;
 }
@@ -33,6 +35,7 @@ const defaultHabits: HabitData = {
   sleepOnTime: false,
   reading: false,
   journal: false,
+  workout: false,
   workHours: 0,
   timeWasted: 0,
 };
@@ -43,6 +46,7 @@ function calcPoints(h: HabitData): number {
   if (h.sleepOnTime) pts += 1;
   if (h.reading) pts += 1;
   if (h.journal) pts += 1;
+  if (h.workout) pts += 1;
   // Work: 6hrs = 1pt, each extra 2hrs = +0.5
   if (h.workHours >= 6) {
     pts += 1;
@@ -55,7 +59,7 @@ function calcPoints(h: HabitData): number {
 }
 
 function getMaxPoints(h: HabitData): number {
-  let max = 4; // 4 checkboxes
+  let max = 5; // 5 checkboxes
   if (h.workHours >= 6) {
     max += 1;
     max += Math.floor((h.workHours - 6) / 2) * 0.5;
@@ -69,7 +73,8 @@ export default function Home() {
   const [habits, setHabits] = useState<HabitData>(defaultHabits);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [weekData, setWeekData] = useState<(HabitData | null)[]>([]);
+  const [historyRange, setHistoryRange] = useState<7 | 30 | 90>(7);
+  const [historyData, setHistoryData] = useState<Map<string, HabitData>>(new Map());
 
   const dateKey = format(selectedDate, "yyyy-MM-dd");
   const isToday = dateKey === format(new Date(), "yyyy-MM-dd");
@@ -87,22 +92,18 @@ export default function Home() {
     setLoading(false);
   }, [user, dateKey]);
 
-  const fetchWeek = useCallback(async () => {
+  const fetchHistory = useCallback(async () => {
     if (!user) return;
-    const days: (HabitData | null)[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = subDays(selectedDate, i);
-      const key = format(d, "yyyy-MM-dd");
-      const snap = await getDoc(doc(db, "users", user.uid, "habits", key));
-      days.push(snap.exists() ? (snap.data() as HabitData) : null);
-    }
-    setWeekData(days);
-  }, [user, selectedDate]);
+    const snap = await getDocs(collection(db, "users", user.uid, "habits"));
+    const map = new Map<string, HabitData>();
+    snap.docs.forEach((d) => map.set(d.id, d.data() as HabitData));
+    setHistoryData(map);
+  }, [user]);
 
   useEffect(() => {
     fetchHabits();
-    fetchWeek();
-  }, [fetchHabits, fetchWeek]);
+    fetchHistory();
+  }, [fetchHabits, fetchHistory]);
 
   const saveHabits = async (updated: HabitData) => {
     if (!user) return;
@@ -110,7 +111,7 @@ export default function Home() {
     setHabits(updated);
     await setDoc(doc(db, "users", user.uid, "habits", dateKey), updated);
     setSaving(false);
-    fetchWeek();
+    setHistoryData((prev) => new Map(prev).set(dateKey, updated));
   };
 
   const toggleHabit = (key: keyof HabitData) => {
@@ -127,13 +128,12 @@ export default function Home() {
   const maxPts = getMaxPoints(habits);
 
   const habitChecks = [
-    { key: "wakeUp" as const, label: "Wake Up On Time", icon: HiOutlineSun, color: "text-amber-400", bgActive: "bg-amber-500/10 border-amber-500/30" },
-    { key: "sleepOnTime" as const, label: "Sleep On Time", icon: HiOutlineMoon, color: "text-indigo-400", bgActive: "bg-indigo-500/10 border-indigo-500/30" },
-    { key: "reading" as const, label: "Reading", icon: HiOutlineBookOpen, color: "text-emerald-400", bgActive: "bg-emerald-500/10 border-emerald-500/30" },
-    { key: "journal" as const, label: "Diary / Journal", icon: HiOutlinePencilSquare, color: "text-violet-400", bgActive: "bg-violet-500/10 border-violet-500/30" },
+    { key: "wakeUp" as const, label: "Wake Up On Time", sub: "", icon: HiOutlineSun, color: "text-amber-400", bgActive: "bg-amber-500/10 border-amber-500/30" },
+    { key: "sleepOnTime" as const, label: "Sleep On Time", sub: "", icon: HiOutlineMoon, color: "text-indigo-400", bgActive: "bg-indigo-500/10 border-indigo-500/30" },
+    { key: "reading" as const, label: "Reading", sub: "90 min", icon: HiOutlineBookOpen, color: "text-emerald-400", bgActive: "bg-emerald-500/10 border-emerald-500/30" },
+    { key: "journal" as const, label: "Diary / Journal", sub: "", icon: HiOutlinePencilSquare, color: "text-violet-400", bgActive: "bg-violet-500/10 border-violet-500/30" },
+    { key: "workout" as const, label: "Workout", sub: "", icon: HiOutlineBolt, color: "text-orange-400", bgActive: "bg-orange-500/10 border-orange-500/30" },
   ];
-
-  const weekDays = Array.from({ length: 7 }, (_, i) => subDays(selectedDate, 6 - i));
 
   return (
     <AuthGuard>
@@ -230,9 +230,12 @@ export default function Home() {
                     >
                       <h.icon className={`h-5 w-5 ${active ? h.color : "text-zinc-500"}`} />
                     </div>
-                    <span className={`text-sm font-medium ${active ? "text-white" : "text-zinc-400"}`}>
-                      {h.label}
-                    </span>
+                    <div>
+                      <span className={`text-sm font-medium ${active ? "text-white" : "text-zinc-400"}`}>
+                        {h.label}
+                      </span>
+                      {h.sub && <span className={`ml-2 text-[10px] ${active ? "text-zinc-400" : "text-zinc-600"}`}>{h.sub}</span>}
+                    </div>
 
                     {/* Checkbox */}
                     <div className="ml-auto">
@@ -336,53 +339,89 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Weekly overview */}
+          {/* History overview */}
           <div className="mt-8 rounded-2xl border border-[#1e1e22] bg-[#111113] p-6">
-            <h3 className="text-sm font-semibold text-white">Last 7 Days</h3>
-            <div className="mt-4 grid grid-cols-7 gap-3">
-              {weekDays.map((day, i) => {
-                const data = weekData[i];
-                const dayPts = data ? calcPoints(data) : 0;
-                const dayMax = data ? getMaxPoints(data) : 5;
-                const isDayToday = format(day, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
-                const isSelected = format(day, "yyyy-MM-dd") === dateKey;
-                return (
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">History</h3>
+              <div className="flex gap-1 rounded-lg bg-[#0a0a0c] p-1">
+                {([7, 30, 90] as const).map((range) => (
                   <button
-                    key={i}
-                    onClick={() => setSelectedDate(day)}
-                    className={`flex flex-col items-center rounded-xl border p-3 transition-all ${
-                      isSelected
-                        ? "border-violet-500/30 bg-violet-500/10"
-                        : "border-[#1e1e22] hover:border-[#2a2a2e] hover:bg-[#161618]"
+                    key={range}
+                    onClick={() => setHistoryRange(range)}
+                    className={`rounded-md px-3 py-1 text-xs font-medium transition-all ${
+                      historyRange === range
+                        ? "bg-[#1a1a1e] text-white"
+                        : "text-zinc-500 hover:text-zinc-300"
                     }`}
                   >
-                    <span className={`text-[10px] font-medium uppercase ${isDayToday ? "text-violet-400" : "text-zinc-500"}`}>
-                      {format(day, "EEE")}
-                    </span>
-                    <span className={`mt-0.5 text-xs ${isDayToday ? "text-white" : "text-zinc-400"}`}>
-                      {format(day, "d")}
-                    </span>
-                    {data ? (
-                      <>
-                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#1a1a1e]">
-                          <div
-                            className={`h-full rounded-full transition-all ${
-                              dayPts >= (dayMax > 4 ? dayMax : 5) ? "bg-emerald-500" : dayPts >= 3 ? "bg-violet-500" : "bg-amber-500"
-                            }`}
-                            style={{ width: `${Math.min(100, (dayPts / (dayMax > 4 ? dayMax : 5)) * 100)}%` }}
-                          />
-                        </div>
-                        <span className="mt-1 text-xs font-bold text-zinc-300">{dayPts}</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className="mt-2 h-1.5 w-full rounded-full bg-[#1a1a1e]" />
-                        <span className="mt-1 text-xs text-zinc-600">-</span>
-                      </>
+                    {range === 90 ? "3M" : `${range}D`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Calendar grid */}
+            <div className={`mt-4 grid gap-1.5 ${historyRange === 7 ? "grid-cols-7" : historyRange === 30 ? "grid-cols-10" : "grid-cols-15"}`}
+              style={historyRange === 90 ? { gridTemplateColumns: "repeat(15, minmax(0, 1fr))" } : undefined}
+            >
+              {Array.from({ length: historyRange }, (_, i) => {
+                const day = subDays(new Date(), historyRange - 1 - i);
+                const key = format(day, "yyyy-MM-dd");
+                const data = historyData.get(key);
+                const dayPts = data ? calcPoints(data) : 0;
+                const dayMax = data ? Math.max(getMaxPoints(data), 6) : 6;
+                const isDayToday = key === format(new Date(), "yyyy-MM-dd");
+                const isSelected = key === dateKey;
+                const pct = data ? dayPts / dayMax : 0;
+
+                // Color based on score
+                const bg = !data
+                  ? "bg-[#1a1a1e]"
+                  : pct >= 0.8
+                  ? "bg-emerald-500"
+                  : pct >= 0.5
+                  ? "bg-violet-500"
+                  : pct > 0
+                  ? "bg-amber-500"
+                  : "bg-[#1a1a1e]";
+
+                const opacity = !data ? "" : pct >= 0.8 ? "opacity-100" : pct >= 0.5 ? "opacity-80" : pct > 0 ? "opacity-60" : "";
+
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedDate(day)}
+                    title={`${format(day, "MMM d")} — ${data ? `${dayPts} pts` : "No data"}`}
+                    className={`group relative aspect-square rounded-md ${bg} ${opacity} transition-all ${
+                      isSelected ? "ring-2 ring-violet-500 ring-offset-1 ring-offset-[#111113]" : "hover:ring-1 hover:ring-zinc-600"
+                    } ${isDayToday ? "ring-1 ring-violet-400/50" : ""}`}
+                  >
+                    {historyRange === 7 && (
+                      <div className="flex h-full flex-col items-center justify-center">
+                        <span className={`text-[9px] font-medium uppercase ${isDayToday ? "text-violet-400" : "text-zinc-500"}`}>
+                          {format(day, "EEE")}
+                        </span>
+                        <span className={`text-[10px] ${isDayToday ? "text-white" : "text-zinc-400"}`}>
+                          {format(day, "d")}
+                        </span>
+                        {data && <span className="mt-0.5 text-xs font-bold text-white">{dayPts}</span>}
+                      </div>
                     )}
                   </button>
                 );
               })}
+            </div>
+
+            {/* Legend */}
+            <div className="mt-3 flex items-center justify-end gap-2 text-[10px] text-zinc-500">
+              <span>Less</span>
+              <div className="flex gap-1">
+                <div className="h-3 w-3 rounded-sm bg-[#1a1a1e]" />
+                <div className="h-3 w-3 rounded-sm bg-amber-500 opacity-60" />
+                <div className="h-3 w-3 rounded-sm bg-violet-500 opacity-80" />
+                <div className="h-3 w-3 rounded-sm bg-emerald-500" />
+              </div>
+              <span>More</span>
             </div>
           </div>
         </div>
