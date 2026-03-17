@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { HiOutlineBookOpen, HiOutlinePencilSquare, HiOutlineHome, HiOutlineArrowRightOnRectangle } from "react-icons/hi2";
+import { HiOutlineBookOpen, HiOutlinePencilSquare, HiOutlineHome, HiOutlineArrowRightOnRectangle, HiOutlineCheckCircle, HiOutlineChartBar } from "react-icons/hi2";
 
 const navItems = [
-  { href: "/", label: "Home", icon: HiOutlineHome },
+  { href: "/", label: "Habits", icon: HiOutlineCheckCircle },
+  { href: "/dashboard", label: "Dashboard", icon: HiOutlineChartBar },
   { href: "/books", label: "Books", icon: HiOutlineBookOpen },
   { href: "/journal", label: "Journal", icon: HiOutlinePencilSquare },
 ];
