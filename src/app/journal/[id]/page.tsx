@@ -120,6 +120,14 @@ export default function JournalDetailPage() {
               <HiOutlineArrowLeft className="h-4 w-4" /> Back to Journal
             </Link>
             <div className="flex gap-2">
+              {editing && (
+                <button
+                  onClick={saveEntry}
+                  className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-violet-500"
+                >
+                  Save Changes
+                </button>
+              )}
               <button
                 onClick={() => setEditing(!editing)}
                 className="flex items-center gap-2 rounded-xl border border-[#1e1e22] px-3 py-2 text-xs text-zinc-400 hover:bg-[#1a1a1e]"
@@ -177,22 +185,12 @@ export default function JournalDetailPage() {
                 />
               </div>
 
-              <div className="mt-6 h-px bg-[#1e1e22]" />
-
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                className="mt-6 flex-1 w-full resize-none border-none bg-transparent text-sm leading-relaxed text-zinc-200 placeholder-zinc-700 outline-none"
+                placeholder="Start writing..."
+                className="mt-8 flex-1 w-full resize-none border-none bg-transparent text-base leading-8 text-zinc-200 placeholder-zinc-700 outline-none"
               />
-
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={saveEntry}
-                  className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-violet-500"
-                >
-                  Save Changes
-                </button>
-              </div>
             </div>
           ) : (
             <article className="flex-1">

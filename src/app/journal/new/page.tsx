@@ -108,13 +108,11 @@ export default function NewJournalPage() {
             </div>
           </div>
 
-          <div className="mt-6 h-px bg-[#1e1e22]" />
-
           <textarea
             placeholder="Start writing..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="mt-6 flex-1 w-full resize-none border-none bg-transparent text-sm leading-relaxed text-zinc-200 placeholder-zinc-700 outline-none"
+            className="mt-8 flex-1 w-full resize-none border-none bg-transparent text-base leading-8 text-zinc-200 placeholder-zinc-700 outline-none"
           />
         </div>
       </main>
