@@ -51,8 +51,8 @@ export default function NewJournalPage() {
   return (
     <AuthGuard>
       <Sidebar />
-      <main className="ml-64 min-h-screen bg-[#09090b] p-8">
-        <div className="animate-fade-in max-w-3xl">
+      <main className="ml-64 flex h-screen flex-col bg-[#09090b] p-8">
+        <div className="animate-fade-in flex flex-1 flex-col">
           <div className="mb-6 flex items-center justify-between">
             <Link href="/journal" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300">
               <HiOutlineArrowLeft className="h-4 w-4" /> Back to Journal
@@ -114,7 +114,7 @@ export default function NewJournalPage() {
             placeholder="Start writing..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="mt-6 min-h-[60vh] w-full resize-none border-none bg-transparent text-sm leading-relaxed text-zinc-200 placeholder-zinc-700 outline-none"
+            className="mt-6 flex-1 w-full resize-none border-none bg-transparent text-sm leading-relaxed text-zinc-200 placeholder-zinc-700 outline-none"
           />
         </div>
       </main>
