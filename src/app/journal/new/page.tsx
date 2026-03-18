@@ -112,7 +112,7 @@ export default function NewJournalPage() {
             placeholder="Start writing..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="mt-8 flex-1 w-full resize-none border-none bg-transparent text-base leading-8 text-zinc-200 placeholder-zinc-700 outline-none"
+            className="mt-8 flex-1 w-full resize-none border-none bg-transparent text-[15px] leading-[1.75] text-zinc-200 placeholder-zinc-700 outline-none"
           />
         </div>
       </main>
