@@ -9,6 +9,7 @@ import Sidebar from "@/components/Sidebar";
 import AuthGuard from "@/components/AuthGuard";
 import Link from "next/link";
 import { HiOutlineArrowLeft } from "react-icons/hi2";
+import JournalEditor from "@/components/JournalEditor";
 
 const moods = [
   { label: "Great", value: "great", color: "bg-[#022c22] text-emerald-400 border-[#064e3b]" },
@@ -52,7 +53,7 @@ export default function NewJournalPage() {
     <AuthGuard>
       <Sidebar />
       <main className="ml-64 flex h-screen flex-col bg-[#09090b] p-8">
-        <div className="animate-fade-in flex flex-1 flex-col">
+        <div className="animate-fade-in flex flex-1 flex-col min-h-0">
           <div className="mb-6 flex items-center justify-between">
             <Link href="/journal" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300">
               <HiOutlineArrowLeft className="h-4 w-4" /> Back to Journal
@@ -89,31 +90,24 @@ export default function NewJournalPage() {
             ))}
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             {tags.map((tag) => (
               <span key={tag} className="flex items-center gap-1 rounded-lg bg-[#1a1a1e] px-2.5 py-1 text-xs text-zinc-400">
                 #{tag}
                 <button onClick={() => setTags(tags.filter((t) => t !== tag))} className="ml-0.5 text-zinc-600 hover:text-red-400">&times;</button>
               </span>
             ))}
-            <div className="flex items-center gap-1.5">
-              <input
-                type="text"
-                placeholder="+ add tag"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
-                className="w-24 border-none bg-transparent text-xs text-zinc-500 placeholder-zinc-700 outline-none"
-              />
-            </div>
+            <input
+              type="text"
+              placeholder="+ add tag"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
+              className="w-24 border-none bg-transparent text-xs text-zinc-500 placeholder-zinc-700 outline-none"
+            />
           </div>
 
-          <textarea
-            placeholder="Start writing..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="mt-8 flex-1 w-full resize-none border-none bg-transparent text-[15px] leading-[1.75] text-zinc-200 placeholder-zinc-700 outline-none"
-          />
+          <JournalEditor content={content} onChange={setContent} autoFocus={false} />
         </div>
       </main>
     </AuthGuard>

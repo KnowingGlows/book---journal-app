@@ -67,7 +67,8 @@ function calcPoints(h: HabitData): number {
     const extra = h.workHours - 6;
     pts += Math.floor(extra / 2) * 0.5;
   }
-  if (h.timeWasted > 60) pts -= 1;
+  // 7th point: good time management (≤60 min wasted)
+  if (h.timeWasted <= 60) pts += 1;
   return Math.max(0, pts);
 }
 
@@ -305,7 +306,7 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-zinc-300">Time Wasted</p>
-                    <p className="text-[10px] text-zinc-600">&gt;60 min = &minus;1pt</p>
+                    <p className="text-[10px] text-zinc-600">≤60 min = +1pt</p>
                   </div>
                 </div>
                 <div className="mt-4 flex items-center gap-2">
@@ -324,8 +325,8 @@ export default function Home() {
                   </div>
                   <button onClick={() => stepNumber("timeWasted", 1)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#27272a] bg-[#1a1a1e] text-lg font-bold text-zinc-400 transition-all hover:border-[#3a3a3e] hover:text-white">+</button>
                 </div>
-                {habits.timeWasted > 60 && <p className="mt-2 text-center text-xs text-red-400/70">&minus;1 pt penalty</p>}
-                {habits.timeWasted > 0 && habits.timeWasted <= 60 && <p className="mt-2 text-center text-xs text-zinc-600">Under limit ✓</p>}
+                {habits.timeWasted <= 60 && <p className="mt-2 text-center text-xs text-emerald-400/70">+1 pt earned ✓</p>}
+                {habits.timeWasted > 60 && <p className="mt-2 text-center text-xs text-red-400/70">Over limit — no point</p>}
               </div>
             </div>
           </div>
