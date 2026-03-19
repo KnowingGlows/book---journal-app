@@ -108,21 +108,25 @@ function TimeInput({
   const setMins = (v: number) => onChange(hrs * 60 + Math.max(0, Math.min(59, v)));
   const step = (delta: number) => onChange(Math.max(0, totalMins + delta * stepMins));
 
+  const inputCls = `w-12 bg-transparent text-center text-xl font-bold outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${textColor}`;
+
   return (
     <div className="mt-4">
       <div className="flex items-center gap-2">
         <button onClick={() => step(-1)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#27272a] bg-[#1a1a1e] text-lg font-bold text-zinc-400 hover:border-[#3a3a3e] hover:text-white transition-all">−</button>
-        <div className="flex flex-1 items-center gap-1 rounded-xl border border-[#27272a] bg-[#1a1a1e] px-3 py-2.5">
+        <div className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-[#27272a] bg-[#1a1a1e] px-3 py-2.5">
           <input
             type="number" min={0} value={hrs}
             onChange={(e) => setHrs(parseInt(e.target.value) || 0)}
-            className={`w-10 bg-transparent text-center text-xl font-bold outline-none ${textColor}`}
+            onFocus={(e) => e.target.select()}
+            className={inputCls}
           />
           <span className="text-sm text-zinc-500">h</span>
           <input
             type="number" min={0} max={59} value={mins}
             onChange={(e) => setMins(parseInt(e.target.value) || 0)}
-            className={`w-10 bg-transparent text-center text-xl font-bold outline-none ${textColor}`}
+            onFocus={(e) => e.target.select()}
+            className={inputCls}
           />
           <span className="text-sm text-zinc-500">m</span>
         </div>
@@ -301,7 +305,7 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-zinc-300">Reading</p>
-                    <p className="text-[10px] text-zinc-600">90m = 1pt · +0.5 per extra 30m</p>
+                    <p className="text-[10px] text-zinc-600">1h 30m = 1pt · +0.5 per extra 30m</p>
                   </div>
                   {habits.readingMins > 0 && <span className="ml-auto text-xs text-zinc-500">{fmtMins(habits.readingMins)}</span>}
                 </div>
@@ -341,7 +345,7 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-zinc-300">Time Wasted</p>
-                    <p className="text-[10px] text-zinc-600">≤60m = +1pt</p>
+                    <p className="text-[10px] text-zinc-600">≤1h = +1pt</p>
                   </div>
                   {habits.timeWasted > 0 && <span className="ml-auto text-xs text-zinc-500">{fmtMins(habits.timeWasted)}</span>}
                 </div>
