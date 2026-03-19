@@ -7,69 +7,76 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
 import {
-  format,
-  subDays,
-  addDays,
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
-  eachDayOfInterval,
-  subMonths,
-  addMonths,
-  isSameMonth,
-  isSameDay,
+  format, subDays, addDays, startOfMonth, endOfMonth,
+  startOfWeek, endOfWeek, eachDayOfInterval, subMonths, addMonths,
+  isSameMonth, isSameDay,
 } from "date-fns";
 import {
-  HiOutlineSun,
-  HiOutlineMoon,
-  HiOutlineBookOpen,
-  HiOutlinePencilSquare,
-  HiOutlineBriefcase,
-  HiOutlineClock,
-  HiOutlineChevronLeft,
-  HiOutlineChevronRight,
-  HiOutlineTrophy,
-  HiOutlineBolt,
+  HiOutlineSun, HiOutlineMoon, HiOutlineBookOpen, HiOutlinePencilSquare,
+  HiOutlineBriefcase, HiOutlineClock, HiOutlineChevronLeft,
+  HiOutlineChevronRight, HiOutlineTrophy, HiOutlineBolt,
 } from "react-icons/hi2";
 
 interface HabitData {
   wakeUp: boolean;
   sleepOnTime: boolean;
-  reading: boolean;
+  readingMins: number;   // 90min = 1pt, +0.5 per extra 30min
   journal: boolean;
   workout: boolean;
-  workHours: number;
-  timeWasted: number;
+  workMins: number;      // 4h (240min) = 1pt, +0.5 per extra 1h
+  timeWasted: number;    // ≤60min = +1pt
 }
 
 const defaultHabits: HabitData = {
-  wakeUp: false,
-  sleepOnTime: false,
-  reading: false,
-  journal: false,
-  workout: false,
-  workHours: 0,
-  timeWasted: 0,
+  wakeUp: false, sleepOnTime: false, readingMins: 0,
+  journal: false, workout: false, workMins: 0, timeWasted: 0,
 };
 
-const BASE_MAX = 7; // 5 habits + work(6h=1pt) + work(8h bonus target)
+const BASE_MAX = 7;
 
 function calcPoints(h: HabitData): number {
   let pts = 0;
   if (h.wakeUp) pts += 1;
   if (h.sleepOnTime) pts += 1;
-  if (h.reading) pts += 1;
   if (h.journal) pts += 1;
   if (h.workout) pts += 1;
-  if (h.workHours >= 6) {
+  // Reading: 90min = 1pt, +0.5 per extra 30min
+  if (h.readingMins >= 90) {
     pts += 1;
-    const extra = h.workHours - 6;
-    pts += Math.floor(extra / 2) * 0.5;
+    pts += Math.floor((h.readingMins - 90) / 30) * 0.5;
   }
-  // 7th point: good time management (≤60 min wasted)
+  // Work: 4h (240min) = 1pt, +0.5 per extra 1h
+  if (h.workMins >= 240) {
+    pts += 1;
+    pts += Math.floor((h.workMins - 240) / 60) * 0.5;
+  }
+  // Time management: ≤60min wasted = +1pt
   if (h.timeWasted <= 60) pts += 1;
   return Math.max(0, pts);
+}
+
+// Migrate old Firestore shape to new shape
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function migrate(raw: any): HabitData {
+  return {
+    wakeUp: raw.wakeUp ?? false,
+    sleepOnTime: raw.sleepOnTime ?? false,
+    journal: raw.journal ?? false,
+    workout: raw.workout ?? false,
+    // old: reading boolean → treat as 90min if true
+    readingMins: raw.readingMins ?? (raw.reading ? 90 : 0),
+    // old: workHours decimal → convert to minutes
+    workMins: raw.workMins ?? Math.round((raw.workHours ?? 0) * 60),
+    timeWasted: raw.timeWasted ?? 0,
+  };
+}
+
+function fmtMins(totalMins: number): string {
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
 }
 
 function getDayColor(pts: number, max: number): string {
@@ -77,8 +84,55 @@ function getDayColor(pts: number, max: number): string {
   const pct = pts / max;
   if (pct >= 0.85) return "emerald";
   if (pct >= 0.57) return "violet";
-  if (pct > 0) return "amber";
-  return "";
+  return "amber";
+}
+
+// Dual hr/min input component
+function TimeInput({
+  totalMins, onChange, threshold, color = "emerald",
+  stepMins = 15, label,
+}: {
+  totalMins: number;
+  onChange: (mins: number) => void;
+  threshold: number;
+  color?: string;
+  stepMins?: number;
+  label?: string;
+}) {
+  const hrs = Math.floor(totalMins / 60);
+  const mins = totalMins % 60;
+  const met = totalMins >= threshold;
+  const textColor = met ? `text-${color}-400` : "text-zinc-300";
+
+  const setHrs = (v: number) => onChange(Math.max(0, v) * 60 + mins);
+  const setMins = (v: number) => onChange(hrs * 60 + Math.max(0, Math.min(59, v)));
+  const step = (delta: number) => onChange(Math.max(0, totalMins + delta * stepMins));
+
+  return (
+    <div className="mt-4">
+      <div className="flex items-center gap-2">
+        <button onClick={() => step(-1)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#27272a] bg-[#1a1a1e] text-lg font-bold text-zinc-400 hover:border-[#3a3a3e] hover:text-white transition-all">−</button>
+        <div className="flex flex-1 items-center gap-1 rounded-xl border border-[#27272a] bg-[#1a1a1e] px-3 py-2.5">
+          <input
+            type="number" min={0} value={hrs}
+            onChange={(e) => setHrs(parseInt(e.target.value) || 0)}
+            className={`w-10 bg-transparent text-center text-xl font-bold outline-none ${textColor}`}
+          />
+          <span className="text-sm text-zinc-500">h</span>
+          <input
+            type="number" min={0} max={59} value={mins}
+            onChange={(e) => setMins(parseInt(e.target.value) || 0)}
+            className={`w-10 bg-transparent text-center text-xl font-bold outline-none ${textColor}`}
+          />
+          <span className="text-sm text-zinc-500">m</span>
+        </div>
+        <button onClick={() => step(1)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#27272a] bg-[#1a1a1e] text-lg font-bold text-zinc-400 hover:border-[#3a3a3e] hover:text-white transition-all">+</button>
+      </div>
+      {label && totalMins > 0 && (
+        <p className={`mt-1.5 text-center text-xs ${met ? `text-${color}-400/70` : "text-zinc-600"}`}>{label}</p>
+      )}
+    </div>
+  );
 }
 
 export default function Home() {
@@ -89,8 +143,6 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date());
   const [historyData, setHistoryData] = useState<Map<string, HabitData>>(new Map());
-  const [workInput, setWorkInput] = useState("");
-  const [wasteInput, setWasteInput] = useState("");
   const saveTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const dateKey = format(selectedDate, "yyyy-MM-dd");
@@ -100,12 +152,8 @@ export default function Home() {
   const fetchHabits = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const ref = doc(db, "users", user.uid, "habits", dateKey);
-    const snap = await getDoc(ref);
-    const data = snap.exists() ? (snap.data() as HabitData) : defaultHabits;
-    setHabits(data);
-    setWorkInput(String(data.workHours));
-    setWasteInput(String(data.timeWasted));
+    const snap = await getDoc(doc(db, "users", user.uid, "habits", dateKey));
+    setHabits(snap.exists() ? migrate(snap.data()) : defaultHabits);
     setLoading(false);
   }, [user, dateKey]);
 
@@ -113,14 +161,11 @@ export default function Home() {
     if (!user) return;
     const snap = await getDocs(collection(db, "users", user.uid, "habits"));
     const map = new Map<string, HabitData>();
-    snap.docs.forEach((d) => map.set(d.id, d.data() as HabitData));
+    snap.docs.forEach((d) => map.set(d.id, migrate(d.data())));
     setHistoryData(map);
   }, [user]);
 
-  useEffect(() => {
-    fetchHabits();
-    fetchHistory();
-  }, [fetchHabits, fetchHistory]);
+  useEffect(() => { fetchHabits(); fetchHistory(); }, [fetchHabits, fetchHistory]);
 
   const saveHabits = useCallback(async (updated: HabitData) => {
     if (!user) return;
@@ -131,44 +176,38 @@ export default function Home() {
     setHistoryData((prev) => new Map(prev).set(dateKey, updated));
   }, [user, dateKey]);
 
-  const toggleHabit = (key: keyof HabitData) => {
-    saveHabits({ ...habits, [key]: !habits[key] });
-  };
-
-  const handleNumberInput = (key: "workHours" | "timeWasted", raw: string) => {
-    if (key === "workHours") setWorkInput(raw);
-    else setWasteInput(raw);
+  // Debounced save for time inputs
+  const debouncedSave = useCallback((updated: HabitData) => {
+    setHabits(updated);
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
-    saveTimeout.current = setTimeout(() => {
-      const val = Math.max(0, parseFloat(raw) || 0);
-      saveHabits({ ...habits, [key]: val });
-    }, 800);
-  };
+    setSaving(true);
+    saveTimeout.current = setTimeout(async () => {
+      if (!user) return;
+      await setDoc(doc(db, "users", user.uid, "habits", dateKey), updated);
+      setSaving(false);
+      setHistoryData((prev) => new Map(prev).set(dateKey, updated));
+    }, 600);
+  }, [user, dateKey]);
 
-  const stepNumber = (key: "workHours" | "timeWasted", delta: number) => {
-    const step = key === "timeWasted" ? 15 : 1;
-    const cur = key === "workHours" ? habits.workHours : habits.timeWasted;
-    const val = Math.max(0, cur + delta * step);
-    if (key === "workHours") setWorkInput(String(val));
-    else setWasteInput(String(val));
-    saveHabits({ ...habits, [key]: val });
-  };
+  const toggleHabit = (key: "wakeUp" | "sleepOnTime" | "journal" | "workout") =>
+    saveHabits({ ...habits, [key]: !habits[key] });
 
   const points = calcPoints(habits);
-  const maxPts = BASE_MAX + (habits.workHours >= 8 ? Math.floor((habits.workHours - 6) / 2) * 0.5 - 0.5 : 0);
 
   const habitChecks = [
     { key: "wakeUp" as const, label: "Wake Up On Time", sub: "~5 AM", icon: HiOutlineSun, color: "text-amber-400", bgActive: "bg-amber-500/10 border-amber-500/30" },
     { key: "sleepOnTime" as const, label: "Sleep On Time", sub: "~9 PM", icon: HiOutlineMoon, color: "text-indigo-400", bgActive: "bg-indigo-500/10 border-indigo-500/30" },
-    { key: "reading" as const, label: "Reading", sub: "90 min", icon: HiOutlineBookOpen, color: "text-emerald-400", bgActive: "bg-emerald-500/10 border-emerald-500/30" },
     { key: "journal" as const, label: "Diary / Journal", sub: "", icon: HiOutlinePencilSquare, color: "text-violet-400", bgActive: "bg-violet-500/10 border-violet-500/30" },
     { key: "workout" as const, label: "Workout", sub: "", icon: HiOutlineBolt, color: "text-orange-400", bgActive: "bg-orange-500/10 border-orange-500/30" },
   ];
 
-  // Calendar days
   const calStart = startOfWeek(startOfMonth(calMonth), { weekStartsOn: 1 });
   const calEnd = endOfWeek(endOfMonth(calMonth), { weekStartsOn: 1 });
   const calDays = eachDayOfInterval({ start: calStart, end: calEnd });
+
+  // Work points label
+  const workPts = habits.workMins >= 240 ? 1 + Math.floor((habits.workMins - 240) / 60) * 0.5 : 0;
+  const readPts = habits.readingMins >= 90 ? 1 + Math.floor((habits.readingMins - 90) / 30) * 0.5 : 0;
 
   return (
     <AuthGuard>
@@ -188,10 +227,7 @@ export default function Home() {
               <button onClick={() => setSelectedDate(subDays(selectedDate, 1))} className="rounded-xl border border-[#1e1e22] bg-[#111113] p-2 text-zinc-400 transition-all hover:border-[#2a2a2e] hover:text-white">
                 <HiOutlineChevronLeft className="h-5 w-5" />
               </button>
-              <button
-                onClick={() => setSelectedDate(new Date())}
-                className={`rounded-xl border px-4 py-2 text-sm font-medium transition-all ${isToday ? "border-violet-500/30 bg-violet-500/10 text-violet-400" : "border-[#1e1e22] bg-[#111113] text-zinc-400 hover:border-[#2a2a2e] hover:text-white"}`}
-              >
+              <button onClick={() => setSelectedDate(new Date())} className={`rounded-xl border px-4 py-2 text-sm font-medium transition-all ${isToday ? "border-violet-500/30 bg-violet-500/10 text-violet-400" : "border-[#1e1e22] bg-[#111113] text-zinc-400 hover:border-[#2a2a2e] hover:text-white"}`}>
                 Today
               </button>
               <button onClick={() => setSelectedDate(addDays(selectedDate, 1))} className="rounded-xl border border-[#1e1e22] bg-[#111113] p-2 text-zinc-400 transition-all hover:border-[#2a2a2e] hover:text-white">
@@ -200,7 +236,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Score card */}
+          {/* Score */}
           <div className="mt-8 rounded-2xl border border-[#1e1e22] bg-[#111113] p-6">
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-4">
@@ -217,10 +253,7 @@ export default function Home() {
               </div>
               <div className="flex-1">
                 <div className="h-3 overflow-hidden rounded-full bg-[#1a1a1e]">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-violet-600 to-violet-400 transition-all duration-500"
-                    style={{ width: `${Math.min(100, (points / BASE_MAX) * 100)}%` }}
-                  />
+                  <div className="h-full rounded-full bg-gradient-to-r from-violet-600 to-violet-400 transition-all duration-500" style={{ width: `${Math.min(100, (points / BASE_MAX) * 100)}%` }} />
                 </div>
                 <div className="mt-1.5 flex justify-between text-[10px] text-zinc-600">
                   <span>0</span>
@@ -231,16 +264,14 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Habits + Controls */}
+          {/* Grid */}
           <div className="mt-6 grid grid-cols-5 gap-6">
-            {/* Habit checkboxes */}
+            {/* Checkboxes */}
             <div className="col-span-3 space-y-3">
               {habitChecks.map((h) => {
                 const active = habits[h.key];
                 return (
-                  <button
-                    key={h.key}
-                    onClick={() => toggleHabit(h.key)}
+                  <button key={h.key} onClick={() => toggleHabit(h.key)}
                     className={`flex w-full items-center gap-4 rounded-2xl border p-5 transition-all ${active ? h.bgActive : "border-[#1e1e22] bg-[#111113] hover:border-[#2a2a2e] hover:bg-[#161618]"}`}
                   >
                     <div className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all ${active ? "bg-white/10" : "bg-[#1a1a1e]"}`}>
@@ -252,11 +283,7 @@ export default function Home() {
                     </div>
                     <div className="ml-auto">
                       <div className={`flex h-6 w-6 items-center justify-center rounded-lg border-2 transition-all ${active ? "border-violet-500 bg-violet-500" : "border-zinc-600"}`}>
-                        {active && (
-                          <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
+                        {active && <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                       </div>
                     </div>
                   </button>
@@ -264,38 +291,46 @@ export default function Home() {
               })}
             </div>
 
-            {/* Work + Time Wasted */}
+            {/* Time trackers */}
             <div className="col-span-2 space-y-3">
-              {/* Work Hours */}
+              {/* Reading */}
               <div className="rounded-2xl border border-[#1e1e22] bg-[#111113] p-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#1a1a1e]">
-                    <HiOutlineBriefcase className={`h-5 w-5 ${habits.workHours >= 6 ? "text-emerald-400" : "text-zinc-500"}`} />
+                    <HiOutlineBookOpen className={`h-5 w-5 ${habits.readingMins >= 90 ? "text-emerald-400" : "text-zinc-500"}`} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-zinc-300">Work Hours</p>
-                    <p className="text-[10px] text-zinc-600">6h = 1pt &middot; +0.5 per extra 2h</p>
+                    <p className="text-sm font-medium text-zinc-300">Reading</p>
+                    <p className="text-[10px] text-zinc-600">90m = 1pt · +0.5 per extra 30m</p>
                   </div>
+                  {habits.readingMins > 0 && <span className="ml-auto text-xs text-zinc-500">{fmtMins(habits.readingMins)}</span>}
                 </div>
-                <div className="mt-4 flex items-center gap-2">
-                  <button onClick={() => stepNumber("workHours", -1)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#27272a] bg-[#1a1a1e] text-lg font-bold text-zinc-400 transition-all hover:border-[#3a3a3e] hover:text-white">-</button>
-                  <div className="relative flex-1">
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.5}
-                      value={workInput}
-                      onChange={(e) => handleNumberInput("workHours", e.target.value)}
-                      onBlur={() => setWorkInput(String(habits.workHours))}
-                      className={`w-full rounded-xl border border-[#27272a] bg-[#1a1a1e] py-2.5 text-center text-2xl font-bold outline-none focus:border-violet-500 ${habits.workHours >= 6 ? "text-emerald-400" : "text-zinc-300"}`}
-                    />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500">hrs</span>
+                <TimeInput
+                  totalMins={habits.readingMins}
+                  onChange={(v) => debouncedSave({ ...habits, readingMins: v })}
+                  threshold={90} color="emerald" stepMins={15}
+                  label={readPts > 0 ? `+${readPts} pt${readPts !== 1 ? "s" : ""} earned` : habits.readingMins > 0 ? `${90 - habits.readingMins}m to go` : undefined}
+                />
+              </div>
+
+              {/* Work */}
+              <div className="rounded-2xl border border-[#1e1e22] bg-[#111113] p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#1a1a1e]">
+                    <HiOutlineBriefcase className={`h-5 w-5 ${habits.workMins >= 240 ? "text-teal-400" : "text-zinc-500"}`} />
                   </div>
-                  <button onClick={() => stepNumber("workHours", 1)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#27272a] bg-[#1a1a1e] text-lg font-bold text-zinc-400 transition-all hover:border-[#3a3a3e] hover:text-white">+</button>
+                  <div>
+                    <p className="text-sm font-medium text-zinc-300">Work</p>
+                    <p className="text-[10px] text-zinc-600">4h = 1pt · +0.5 per extra 1h</p>
+                  </div>
+                  {habits.workMins > 0 && <span className="ml-auto text-xs text-zinc-500">{fmtMins(habits.workMins)}</span>}
                 </div>
-                {habits.workHours >= 6 && (
-                  <p className="mt-2 text-center text-xs text-emerald-400/70">+{(1 + Math.floor((habits.workHours - 6) / 2) * 0.5).toFixed(1).replace(".0", "")} pts earned</p>
-                )}
+                <TimeInput
+                  totalMins={habits.workMins}
+                  onChange={(v) => debouncedSave({ ...habits, workMins: v })}
+                  threshold={240} color="teal" stepMins={30}
+                  label={workPts > 0 ? `+${workPts} pt${workPts !== 1 ? "s" : ""} earned` : habits.workMins > 0 ? `${fmtMins(240 - habits.workMins)} to go` : undefined}
+                />
               </div>
 
               {/* Time Wasted */}
@@ -306,34 +341,22 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-zinc-300">Time Wasted</p>
-                    <p className="text-[10px] text-zinc-600">≤60 min = +1pt</p>
+                    <p className="text-[10px] text-zinc-600">≤60m = +1pt</p>
                   </div>
+                  {habits.timeWasted > 0 && <span className="ml-auto text-xs text-zinc-500">{fmtMins(habits.timeWasted)}</span>}
                 </div>
-                <div className="mt-4 flex items-center gap-2">
-                  <button onClick={() => stepNumber("timeWasted", -1)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#27272a] bg-[#1a1a1e] text-lg font-bold text-zinc-400 transition-all hover:border-[#3a3a3e] hover:text-white">-</button>
-                  <div className="relative flex-1">
-                    <input
-                      type="number"
-                      min={0}
-                      step={15}
-                      value={wasteInput}
-                      onChange={(e) => handleNumberInput("timeWasted", e.target.value)}
-                      onBlur={() => setWasteInput(String(habits.timeWasted))}
-                      className={`w-full rounded-xl border border-[#27272a] bg-[#1a1a1e] py-2.5 text-center text-2xl font-bold outline-none focus:border-violet-500 ${habits.timeWasted > 60 ? "text-red-400" : "text-zinc-300"}`}
-                    />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500">min</span>
-                  </div>
-                  <button onClick={() => stepNumber("timeWasted", 1)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#27272a] bg-[#1a1a1e] text-lg font-bold text-zinc-400 transition-all hover:border-[#3a3a3e] hover:text-white">+</button>
-                </div>
-                {habits.timeWasted <= 60 && <p className="mt-2 text-center text-xs text-emerald-400/70">+1 pt earned ✓</p>}
-                {habits.timeWasted > 60 && <p className="mt-2 text-center text-xs text-red-400/70">Over limit — no point</p>}
+                <TimeInput
+                  totalMins={habits.timeWasted}
+                  onChange={(v) => debouncedSave({ ...habits, timeWasted: v })}
+                  threshold={0} color="red" stepMins={15}
+                  label={habits.timeWasted <= 60 ? "+1 pt earned ✓" : "Over limit — no point"}
+                />
               </div>
             </div>
           </div>
 
           {/* Calendar */}
           <div className="mt-8 rounded-2xl border border-[#1e1e22] bg-[#111113] p-6">
-            {/* Month nav */}
             <div className="flex items-center justify-between">
               <button onClick={() => setCalMonth(subMonths(calMonth, 1))} className="rounded-lg border border-[#1e1e22] p-1.5 text-zinc-400 transition-all hover:border-[#2a2a2e] hover:text-white">
                 <HiOutlineChevronLeft className="h-4 w-4" />
@@ -343,15 +366,11 @@ export default function Home() {
                 <HiOutlineChevronRight className="h-4 w-4" />
               </button>
             </div>
-
-            {/* Day headers */}
             <div className="mt-4 grid grid-cols-7 gap-1">
-              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+              {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((d) => (
                 <div key={d} className="py-1 text-center text-[10px] font-medium uppercase tracking-wider text-zinc-600">{d}</div>
               ))}
             </div>
-
-            {/* Day cells */}
             <div className="mt-1 grid grid-cols-7 gap-1">
               {calDays.map((day) => {
                 const key = format(day, "yyyy-MM-dd");
@@ -361,60 +380,34 @@ export default function Home() {
                 const isDayToday = isSameDay(day, today);
                 const isSelected = key === dateKey;
                 const colorName = data ? getDayColor(dayPts, BASE_MAX) : "";
-
-                const bgClass = colorName === "emerald"
-                  ? "bg-emerald-500/15 border-emerald-500/25"
-                  : colorName === "violet"
-                  ? "bg-violet-500/15 border-violet-500/25"
-                  : colorName === "amber"
-                  ? "bg-amber-500/15 border-amber-500/25"
-                  : "bg-[#0e0e10] border-[#1a1a1e]";
-
-                const ptColor = colorName === "emerald"
-                  ? "text-emerald-400"
-                  : colorName === "violet"
-                  ? "text-violet-400"
-                  : colorName === "amber"
-                  ? "text-amber-400"
-                  : "text-zinc-600";
-
+                const bgClass = colorName === "emerald" ? "bg-emerald-500/15 border-emerald-500/25" : colorName === "violet" ? "bg-violet-500/15 border-violet-500/25" : colorName === "amber" ? "bg-amber-500/15 border-amber-500/25" : "bg-[#0e0e10] border-[#1a1a1e]";
+                const ptColor = colorName === "emerald" ? "text-emerald-400" : colorName === "violet" ? "text-violet-400" : colorName === "amber" ? "text-amber-400" : "text-zinc-600";
                 return (
-                  <button
-                    key={key}
-                    onClick={() => { setSelectedDate(day); }}
-                    disabled={!isCurrentMonth}
-                    className={`relative flex flex-col items-center justify-between rounded-xl border p-2 transition-all ${
-                      isCurrentMonth ? `${bgClass} hover:brightness-125` : "border-transparent bg-transparent opacity-20"
-                    } ${isSelected ? "ring-2 ring-violet-500 ring-offset-1 ring-offset-[#111113]" : ""} ${isDayToday && !isSelected ? "ring-1 ring-violet-400/40 ring-offset-1 ring-offset-[#111113]" : ""}`}
+                  <button key={key} onClick={() => setSelectedDate(day)} disabled={!isCurrentMonth}
+                    className={`relative flex flex-col items-center justify-between rounded-xl border p-2 transition-all ${isCurrentMonth ? `${bgClass} hover:brightness-125` : "border-transparent bg-transparent opacity-20"} ${isSelected ? "ring-2 ring-violet-500 ring-offset-1 ring-offset-[#111113]" : ""} ${isDayToday && !isSelected ? "ring-1 ring-violet-400/40 ring-offset-1 ring-offset-[#111113]" : ""}`}
                     style={{ minHeight: "64px" }}
                   >
-                    <span className={`self-start text-[11px] font-semibold ${isDayToday ? "text-violet-400" : isCurrentMonth ? "text-zinc-400" : "text-zinc-700"}`}>
-                      {format(day, "d")}
-                    </span>
+                    <span className={`self-start text-[11px] font-semibold ${isDayToday ? "text-violet-400" : isCurrentMonth ? "text-zinc-400" : "text-zinc-700"}`}>{format(day, "d")}</span>
                     {data && isCurrentMonth && (
                       <div className="flex w-full flex-col items-center gap-0.5">
                         <span className={`text-sm font-bold ${ptColor}`}>{dayPts}</span>
-                        <div className="flex gap-0.5 flex-wrap justify-center">
+                        <div className="flex flex-wrap justify-center gap-0.5">
                           {data.wakeUp && <div className="h-1 w-1 rounded-full bg-amber-400" />}
                           {data.sleepOnTime && <div className="h-1 w-1 rounded-full bg-indigo-400" />}
-                          {data.reading && <div className="h-1 w-1 rounded-full bg-emerald-400" />}
+                          {data.readingMins >= 90 && <div className="h-1 w-1 rounded-full bg-emerald-400" />}
                           {data.journal && <div className="h-1 w-1 rounded-full bg-violet-400" />}
                           {data.workout && <div className="h-1 w-1 rounded-full bg-orange-400" />}
-                          {data.workHours >= 6 && <div className="h-1 w-1 rounded-full bg-teal-400" />}
+                          {data.workMins >= 240 && <div className="h-1 w-1 rounded-full bg-teal-400" />}
                         </div>
                       </div>
                     )}
-                    {!data && isCurrentMonth && isSameDay(day, today) && (
-                      <span className="text-[9px] text-zinc-600">today</span>
-                    )}
+                    {!data && isCurrentMonth && isSameDay(day, today) && <span className="text-[9px] text-zinc-600">today</span>}
                   </button>
                 );
               })}
             </div>
-
-            {/* Legend */}
             <div className="mt-4 flex items-center justify-between">
-              <div className="flex items-center gap-3 text-[10px] text-zinc-600">
+              <div className="flex flex-wrap items-center gap-3 text-[10px] text-zinc-600">
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" />Wake</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-400" />Sleep</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-400" />Read</span>
