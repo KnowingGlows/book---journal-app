@@ -62,7 +62,7 @@ function calcPoints(h: HabitData, date?: Date): number {
   } else {
     pts -= Math.floor((h.timeWasted - 60) / 30);
   }
-  return Math.max(0, pts);
+  return pts;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
