@@ -9,63 +9,71 @@ import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
 import {
   format, subDays, addDays, startOfMonth, endOfMonth,
   startOfWeek, endOfWeek, eachDayOfInterval, subMonths, addMonths,
-  isSameMonth, isSameDay,
+  isSameMonth, isSameDay, isSunday, getDay,
 } from "date-fns";
 import {
   HiOutlineSun, HiOutlineMoon, HiOutlineBookOpen, HiOutlinePencilSquare,
   HiOutlineBriefcase, HiOutlineClock, HiOutlineChevronLeft,
-  HiOutlineChevronRight, HiOutlineTrophy, HiOutlineBolt,
+  HiOutlineChevronRight, HiOutlineTrophy, HiOutlineBolt, HiOutlineSparkles,
 } from "react-icons/hi2";
 
 interface HabitData {
   wakeUp: boolean;
   sleepOnTime: boolean;
-  readingMins: number;   // 90min = 1pt, +0.5 per extra 30min
-  journal: boolean;
+  meditation: boolean;
+  journalSunday: boolean;
   workout: boolean;
-  workMins: number;      // 4h (240min) = 1pt, +0.5 per extra 1h
-  timeWasted: number;    // ≤60min = +1pt
+  readingMins: number;
+  workMins: number;
+  timeWasted: number;
 }
 
 const defaultHabits: HabitData = {
-  wakeUp: false, sleepOnTime: false, readingMins: 0,
-  journal: false, workout: false, workMins: 0, timeWasted: 0,
+  wakeUp: false, sleepOnTime: false, meditation: false,
+  journalSunday: false, workout: false,
+  readingMins: 0, workMins: 0, timeWasted: 0,
 };
 
-const BASE_MAX = 7;
+function dayMax(): number {
+  return 7;
+}
 
-function calcPoints(h: HabitData): number {
+function calcPoints(h: HabitData, date?: Date): number {
   let pts = 0;
   if (h.wakeUp) pts += 1;
   if (h.sleepOnTime) pts += 1;
-  if (h.journal) pts += 1;
+  if (h.meditation) pts += 1;
   if (h.workout) pts += 1;
-  // Reading: 90min = 1pt, +0.5 per extra 30min
+  // Sunday journal
+  if (date && isSunday(date) && h.journalSunday) pts += 1;
+  // Reading: 1h30m = 1pt, +0.5 per extra 30m
   if (h.readingMins >= 90) {
     pts += 1;
     pts += Math.floor((h.readingMins - 90) / 30) * 0.5;
   }
-  // Work: 4h (240min) = 1pt, +0.5 per extra 1h
+  // Work: 4h = 1pt, +0.5 per extra 1h
   if (h.workMins >= 240) {
     pts += 1;
     pts += Math.floor((h.workMins - 240) / 60) * 0.5;
   }
-  // Time management: ≤60min wasted = +1pt
-  if (h.timeWasted <= 60) pts += 1;
+  // Time wasted: ≤1h = +1pt, each 30m above 1h = -1pt
+  if (h.timeWasted <= 60) {
+    pts += 1;
+  } else {
+    pts -= Math.floor((h.timeWasted - 60) / 30);
+  }
   return Math.max(0, pts);
 }
 
-// Migrate old Firestore shape to new shape
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function migrate(raw: any): HabitData {
   return {
     wakeUp: raw.wakeUp ?? false,
     sleepOnTime: raw.sleepOnTime ?? false,
-    journal: raw.journal ?? false,
+    meditation: raw.meditation ?? false,
+    journalSunday: raw.journalSunday ?? raw.journal ?? false,
     workout: raw.workout ?? false,
-    // old: reading boolean → treat as 90min if true
     readingMins: raw.readingMins ?? (raw.reading ? 90 : 0),
-    // old: workHours decimal → convert to minutes
     workMins: raw.workMins ?? Math.round((raw.workHours ?? 0) * 60),
     timeWasted: raw.timeWasted ?? 0,
   };
@@ -87,7 +95,6 @@ function getDayColor(pts: number, max: number): string {
   return "amber";
 }
 
-// Dual hr/min input component
 function TimeInput({
   totalMins, onChange, threshold, color = "emerald",
   stepMins = 15, label,
@@ -103,31 +110,20 @@ function TimeInput({
   const mins = totalMins % 60;
   const met = totalMins >= threshold;
   const textColor = met ? `text-${color}-400` : "text-zinc-300";
+  const inputCls = `w-12 bg-transparent text-center text-xl font-bold outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${textColor}`;
 
   const setHrs = (v: number) => onChange(Math.max(0, v) * 60 + mins);
   const setMins = (v: number) => onChange(hrs * 60 + Math.max(0, Math.min(59, v)));
   const step = (delta: number) => onChange(Math.max(0, totalMins + delta * stepMins));
-
-  const inputCls = `w-12 bg-transparent text-center text-xl font-bold outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${textColor}`;
 
   return (
     <div className="mt-4">
       <div className="flex items-center gap-2">
         <button onClick={() => step(-1)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#27272a] bg-[#1a1a1e] text-lg font-bold text-zinc-400 hover:border-[#3a3a3e] hover:text-white transition-all">−</button>
         <div className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-[#27272a] bg-[#1a1a1e] px-3 py-2.5">
-          <input
-            type="number" min={0} value={hrs}
-            onChange={(e) => setHrs(parseInt(e.target.value) || 0)}
-            onFocus={(e) => e.target.select()}
-            className={inputCls}
-          />
+          <input type="number" min={0} value={hrs} onChange={(e) => setHrs(parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className={inputCls} />
           <span className="text-sm text-zinc-500">h</span>
-          <input
-            type="number" min={0} max={59} value={mins}
-            onChange={(e) => setMins(parseInt(e.target.value) || 0)}
-            onFocus={(e) => e.target.select()}
-            className={inputCls}
-          />
+          <input type="number" min={0} max={59} value={mins} onChange={(e) => setMins(parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className={inputCls} />
           <span className="text-sm text-zinc-500">m</span>
         </div>
         <button onClick={() => step(1)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#27272a] bg-[#1a1a1e] text-lg font-bold text-zinc-400 hover:border-[#3a3a3e] hover:text-white transition-all">+</button>
@@ -152,6 +148,8 @@ export default function Home() {
   const dateKey = format(selectedDate, "yyyy-MM-dd");
   const isToday = dateKey === format(new Date(), "yyyy-MM-dd");
   const today = new Date();
+  const isSun = isSunday(selectedDate);
+  const todayMax = dayMax();
 
   const fetchHabits = useCallback(async () => {
     if (!user) return;
@@ -180,7 +178,6 @@ export default function Home() {
     setHistoryData((prev) => new Map(prev).set(dateKey, updated));
   }, [user, dateKey]);
 
-  // Debounced save for time inputs
   const debouncedSave = useCallback((updated: HabitData) => {
     setHabits(updated);
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
@@ -193,25 +190,54 @@ export default function Home() {
     }, 600);
   }, [user, dateKey]);
 
-  const toggleHabit = (key: "wakeUp" | "sleepOnTime" | "journal" | "workout") =>
+  const toggleHabit = (key: "wakeUp" | "sleepOnTime" | "meditation" | "workout" | "journalSunday") =>
     saveHabits({ ...habits, [key]: !habits[key] });
 
-  const points = calcPoints(habits);
+  const points = calcPoints(habits, selectedDate);
 
   const habitChecks = [
     { key: "wakeUp" as const, label: "Wake Up On Time", sub: "~5 AM", icon: HiOutlineSun, color: "text-amber-400", bgActive: "bg-amber-500/10 border-amber-500/30" },
     { key: "sleepOnTime" as const, label: "Sleep On Time", sub: "~9 PM", icon: HiOutlineMoon, color: "text-indigo-400", bgActive: "bg-indigo-500/10 border-indigo-500/30" },
-    { key: "journal" as const, label: "Diary / Journal", sub: "", icon: HiOutlinePencilSquare, color: "text-violet-400", bgActive: "bg-violet-500/10 border-violet-500/30" },
+    { key: "meditation" as const, label: "Meditation", sub: "", icon: HiOutlineSparkles, color: "text-pink-400", bgActive: "bg-pink-500/10 border-pink-500/30" },
     { key: "workout" as const, label: "Workout", sub: "", icon: HiOutlineBolt, color: "text-orange-400", bgActive: "bg-orange-500/10 border-orange-500/30" },
   ];
+
+  // Weekly totals
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
+  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
+  let weekPts = 0;
+  let weekMax = 0;
+  let weekDaysTracked = 0;
+  weekDays.forEach((day) => {
+    const k = format(day, "yyyy-MM-dd");
+    const data = historyData.get(k);
+    weekMax += dayMax();
+    if (data) {
+      weekPts += calcPoints(data, day);
+      weekDaysTracked++;
+    }
+  });
+
+  // Previous week for comparison
+  const prevWeekStart = subDays(weekStart, 7);
+  const prevWeekEnd = subDays(weekEnd, 7);
+  const prevWeekDays = eachDayOfInterval({ start: prevWeekStart, end: prevWeekEnd });
+  let prevWeekPts = 0;
+  prevWeekDays.forEach((day) => {
+    const k = format(day, "yyyy-MM-dd");
+    const data = historyData.get(k);
+    if (data) prevWeekPts += calcPoints(data, day);
+  });
+  const weekDelta = weekPts - prevWeekPts;
 
   const calStart = startOfWeek(startOfMonth(calMonth), { weekStartsOn: 1 });
   const calEnd = endOfWeek(endOfMonth(calMonth), { weekStartsOn: 1 });
   const calDays = eachDayOfInterval({ start: calStart, end: calEnd });
 
-  // Work points label
   const workPts = habits.workMins >= 240 ? 1 + Math.floor((habits.workMins - 240) / 60) * 0.5 : 0;
   const readPts = habits.readingMins >= 90 ? 1 + Math.floor((habits.readingMins - 90) / 30) * 0.5 : 0;
+  const wastePenalty = habits.timeWasted > 60 ? Math.floor((habits.timeWasted - 60) / 30) : 0;
 
   return (
     <AuthGuard>
@@ -225,6 +251,7 @@ export default function Home() {
               <h2 className="text-2xl font-bold text-white">Daily Habits</h2>
               <p className="mt-1 text-sm text-zinc-500">
                 {isToday ? "Today" : format(selectedDate, "EEEE")}, {format(selectedDate, "MMMM d, yyyy")}
+                {isSun && <span className="ml-2 rounded bg-violet-500/10 px-1.5 py-0.5 text-[10px] text-violet-400">Journal Day</span>}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -251,17 +278,17 @@ export default function Home() {
                   <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Score</p>
                   <p className="text-4xl font-bold text-white">
                     {loading ? "—" : points}
-                    <span className="ml-1 text-lg text-zinc-600">/ {BASE_MAX}</span>
+                    <span className="ml-1 text-lg text-zinc-600">/ {todayMax}</span>
                   </p>
                 </div>
               </div>
               <div className="flex-1">
                 <div className="h-3 overflow-hidden rounded-full bg-[#1a1a1e]">
-                  <div className="h-full rounded-full bg-gradient-to-r from-violet-600 to-violet-400 transition-all duration-500" style={{ width: `${Math.min(100, (points / BASE_MAX) * 100)}%` }} />
+                  <div className="h-full rounded-full bg-gradient-to-r from-violet-600 to-violet-400 transition-all duration-500" style={{ width: `${Math.min(100, (points / todayMax) * 100)}%` }} />
                 </div>
                 <div className="mt-1.5 flex justify-between text-[10px] text-zinc-600">
                   <span>0</span>
-                  <span>{points >= BASE_MAX ? "Perfect day 🎯" : `${(BASE_MAX - points).toFixed(1).replace(".0", "")} to go`}</span>
+                  <span>{points >= todayMax ? "Perfect day" : `${(todayMax - points).toFixed(1).replace(".0", "")} to go`}</span>
                 </div>
               </div>
               {saving && <span className="text-xs text-zinc-600">Saving…</span>}
@@ -293,6 +320,25 @@ export default function Home() {
                   </button>
                 );
               })}
+              {/* Sunday-only Journal */}
+              {isSun && (
+                <button onClick={() => toggleHabit("journalSunday")}
+                  className={`flex w-full items-center gap-4 rounded-2xl border p-5 transition-all ${habits.journalSunday ? "bg-violet-500/10 border-violet-500/30" : "border-[#1e1e22] bg-[#111113] hover:border-[#2a2a2e] hover:bg-[#161618]"}`}
+                >
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all ${habits.journalSunday ? "bg-white/10" : "bg-[#1a1a1e]"}`}>
+                    <HiOutlinePencilSquare className={`h-5 w-5 ${habits.journalSunday ? "text-violet-400" : "text-zinc-500"}`} />
+                  </div>
+                  <div className="text-left">
+                    <span className={`text-sm font-medium ${habits.journalSunday ? "text-white" : "text-zinc-400"}`}>Weekly Journal</span>
+                    <span className={`ml-2 text-[10px] ${habits.journalSunday ? "text-zinc-400" : "text-zinc-600"}`}>Sundays only</span>
+                  </div>
+                  <div className="ml-auto">
+                    <div className={`flex h-6 w-6 items-center justify-center rounded-lg border-2 transition-all ${habits.journalSunday ? "border-violet-500 bg-violet-500" : "border-zinc-600"}`}>
+                      {habits.journalSunday && <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                    </div>
+                  </div>
+                </button>
+              )}
             </div>
 
             {/* Time trackers */}
@@ -309,12 +355,8 @@ export default function Home() {
                   </div>
                   {habits.readingMins > 0 && <span className="ml-auto text-xs text-zinc-500">{fmtMins(habits.readingMins)}</span>}
                 </div>
-                <TimeInput
-                  totalMins={habits.readingMins}
-                  onChange={(v) => debouncedSave({ ...habits, readingMins: v })}
-                  threshold={90} color="emerald" stepMins={15}
-                  label={readPts > 0 ? `+${readPts} pt${readPts !== 1 ? "s" : ""} earned` : habits.readingMins > 0 ? `${90 - habits.readingMins}m to go` : undefined}
-                />
+                <TimeInput totalMins={habits.readingMins} onChange={(v) => debouncedSave({ ...habits, readingMins: v })} threshold={90} color="emerald" stepMins={15}
+                  label={readPts > 0 ? `+${readPts} pt${readPts !== 1 ? "s" : ""} earned` : habits.readingMins > 0 ? `${fmtMins(90 - habits.readingMins)} to go` : undefined} />
               </div>
 
               {/* Work */}
@@ -329,12 +371,8 @@ export default function Home() {
                   </div>
                   {habits.workMins > 0 && <span className="ml-auto text-xs text-zinc-500">{fmtMins(habits.workMins)}</span>}
                 </div>
-                <TimeInput
-                  totalMins={habits.workMins}
-                  onChange={(v) => debouncedSave({ ...habits, workMins: v })}
-                  threshold={240} color="teal" stepMins={30}
-                  label={workPts > 0 ? `+${workPts} pt${workPts !== 1 ? "s" : ""} earned` : habits.workMins > 0 ? `${fmtMins(240 - habits.workMins)} to go` : undefined}
-                />
+                <TimeInput totalMins={habits.workMins} onChange={(v) => debouncedSave({ ...habits, workMins: v })} threshold={240} color="teal" stepMins={30}
+                  label={workPts > 0 ? `+${workPts} pt${workPts !== 1 ? "s" : ""} earned` : habits.workMins > 0 ? `${fmtMins(240 - habits.workMins)} to go` : undefined} />
               </div>
 
               {/* Time Wasted */}
@@ -345,17 +383,59 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-zinc-300">Time Wasted</p>
-                    <p className="text-[10px] text-zinc-600">≤1h = +1pt</p>
+                    <p className="text-[10px] text-zinc-600">≤1h = +1pt · -1 per 30m over</p>
                   </div>
                   {habits.timeWasted > 0 && <span className="ml-auto text-xs text-zinc-500">{fmtMins(habits.timeWasted)}</span>}
                 </div>
-                <TimeInput
-                  totalMins={habits.timeWasted}
-                  onChange={(v) => debouncedSave({ ...habits, timeWasted: v })}
-                  threshold={0} color="red" stepMins={15}
-                  label={habits.timeWasted <= 60 ? "+1 pt earned ✓" : "Over limit — no point"}
-                />
+                <TimeInput totalMins={habits.timeWasted} onChange={(v) => debouncedSave({ ...habits, timeWasted: v })} threshold={0} color="red" stepMins={15}
+                  label={habits.timeWasted <= 60 ? "+1 pt earned ✓" : `-${wastePenalty} pt${wastePenalty !== 1 ? "s" : ""} deducted`} />
               </div>
+            </div>
+          </div>
+
+          {/* Weekly Summary */}
+          <div className="mt-8 rounded-2xl border border-[#1e1e22] bg-[#111113] p-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">
+                Week of {format(weekStart, "MMM d")} – {format(weekEnd, "MMM d")}
+              </h3>
+              {weekDaysTracked > 0 && (
+                <span className={`text-xs font-medium ${weekDelta > 0 ? "text-emerald-400" : weekDelta < 0 ? "text-red-400" : "text-zinc-500"}`}>
+                  {weekDelta > 0 ? "↑" : weekDelta < 0 ? "↓" : "→"} {weekDelta > 0 ? "+" : ""}{weekDelta} vs last week
+                </span>
+              )}
+            </div>
+            <div className="mt-4 grid grid-cols-7 gap-2">
+              {weekDays.map((day) => {
+                const k = format(day, "yyyy-MM-dd");
+                const data = historyData.get(k);
+                const dMax = dayMax();
+                const dPts = data ? calcPoints(data, day) : 0;
+                const pct = data ? dPts / dMax : 0;
+                const isDayToday = isSameDay(day, today);
+                const isSel = k === dateKey;
+                return (
+                  <button key={k} onClick={() => setSelectedDate(day)}
+                    className={`flex flex-col items-center rounded-xl border p-3 transition-all ${isSel ? "border-violet-500 bg-violet-500/10" : "border-[#1e1e22] hover:border-[#2a2a2e]"}`}
+                  >
+                    <span className={`text-[10px] font-medium uppercase ${isDayToday ? "text-violet-400" : "text-zinc-600"}`}>{format(day, "EEE")}</span>
+                    <span className={`mt-1 text-lg font-bold ${!data ? "text-zinc-700" : pct >= 0.85 ? "text-emerald-400" : pct >= 0.57 ? "text-violet-400" : "text-amber-400"}`}>
+                      {data ? dPts : "—"}
+                    </span>
+                    <span className="text-[9px] text-zinc-600">/ {dMax}</span>
+                    {/* Mini progress bar */}
+                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-[#1a1a1e]">
+                      <div className={`h-full rounded-full transition-all ${pct >= 0.85 ? "bg-emerald-500" : pct >= 0.57 ? "bg-violet-500" : pct > 0 ? "bg-amber-500" : ""}`}
+                        style={{ width: `${pct * 100}%` }} />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-4 flex items-center justify-between rounded-xl bg-[#0a0a0c] px-4 py-3">
+              <span className="text-xs text-zinc-500">Weekly Total</span>
+              <span className="text-lg font-bold text-white">{weekPts} <span className="text-sm text-zinc-600">/ {weekMax}</span></span>
+              <span className="text-xs text-zinc-500">{weekDaysTracked}/7 days tracked</span>
             </div>
           </div>
 
@@ -379,11 +459,12 @@ export default function Home() {
               {calDays.map((day) => {
                 const key = format(day, "yyyy-MM-dd");
                 const data = historyData.get(key);
-                const dayPts = data ? calcPoints(data) : 0;
+                const dMax = dayMax();
+                const dayPts = data ? calcPoints(data, day) : 0;
                 const isCurrentMonth = isSameMonth(day, calMonth);
                 const isDayToday = isSameDay(day, today);
                 const isSelected = key === dateKey;
-                const colorName = data ? getDayColor(dayPts, BASE_MAX) : "";
+                const colorName = data ? getDayColor(dayPts, dMax) : "";
                 const bgClass = colorName === "emerald" ? "bg-emerald-500/15 border-emerald-500/25" : colorName === "violet" ? "bg-violet-500/15 border-violet-500/25" : colorName === "amber" ? "bg-amber-500/15 border-amber-500/25" : "bg-[#0e0e10] border-[#1a1a1e]";
                 const ptColor = colorName === "emerald" ? "text-emerald-400" : colorName === "violet" ? "text-violet-400" : colorName === "amber" ? "text-amber-400" : "text-zinc-600";
                 return (
@@ -398,10 +479,11 @@ export default function Home() {
                         <div className="flex flex-wrap justify-center gap-0.5">
                           {data.wakeUp && <div className="h-1 w-1 rounded-full bg-amber-400" />}
                           {data.sleepOnTime && <div className="h-1 w-1 rounded-full bg-indigo-400" />}
+                          {data.meditation && <div className="h-1 w-1 rounded-full bg-pink-400" />}
                           {data.readingMins >= 90 && <div className="h-1 w-1 rounded-full bg-emerald-400" />}
-                          {data.journal && <div className="h-1 w-1 rounded-full bg-violet-400" />}
                           {data.workout && <div className="h-1 w-1 rounded-full bg-orange-400" />}
                           {data.workMins >= 240 && <div className="h-1 w-1 rounded-full bg-teal-400" />}
+                          {isSunday(day) && data.journalSunday && <div className="h-1 w-1 rounded-full bg-violet-400" />}
                         </div>
                       </div>
                     )}
@@ -414,10 +496,11 @@ export default function Home() {
               <div className="flex flex-wrap items-center gap-3 text-[10px] text-zinc-600">
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" />Wake</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-400" />Sleep</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-pink-400" />Meditate</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-400" />Read</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-400" />Journal</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-orange-400" />Workout</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-teal-400" />Work</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-400" />Journal</span>
               </div>
               <div className="flex items-center gap-2 text-[10px] text-zinc-600">
                 <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-amber-500/40" />Low</span>
